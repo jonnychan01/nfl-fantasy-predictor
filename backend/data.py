@@ -18,11 +18,11 @@ def loaded_players() -> dict:
 
         players[player_id] = {
             'player_id': player_id,
-            'name': player.get['full_name'],
+            'name': player.get('full_name'),
             'position': player.get('position'),
             'team': player.get('team'),
             'age': player.get('age'),
-            'experience': player.get('experience', 0),
+            'years_experience': player.get('years_exp', 0),
         }
     return players
 
@@ -33,11 +33,11 @@ def loaded_stats(season:int) -> dict:
 
     stats = {}
     for player_id, stat in raw_data.items():
-        games_played = stat.get('games_played', 0) or 0
+        games_played = stat.get('gp', 0) or 0
         if games_played == 0:
             continue
-        offensive_snaps = stat.get('offensive_snaps', 0) or 0
-        team_snaps = stat.get('team_snaps', 1) or 1
+        offensive_snaps = stat.get('off_snp', 0) or 0
+        team_snaps = stat.get('tm_off_snp', 1) or 1
         stats[player_id] = {
             "pts_ppr": stat.get('pts_ppr', 0) or 0,
             "pts_half_ppr": stat.get('pts_half_ppr', 0) or 0,
@@ -56,7 +56,7 @@ def loaded_stats(season:int) -> dict:
             "fumbles": stat.get('fum_lost', 0) or 0,
         }
     return stats
-            
+         
 
 
             

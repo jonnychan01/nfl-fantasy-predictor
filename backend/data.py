@@ -13,12 +13,16 @@ def loaded_players() -> dict:
     for player_id, player in raw_data.items():
         if player.get('position') not in POSITIONS:
             continue
-        if not player.get('full_name'): 
+        if player.get('position') == 'DEF':
+            full_name = f"{player.get('first_name', '')} {player.get('last_name', '')}".strip()
+        else:
+            full_name = player.get('full_name')
+        if not full_name:
             continue
-
+        
         players[player_id] = {
             'player_id': player_id,
-            'name': player.get('full_name'),
+            'name': full_name,
             'position': player.get('position'),
             'team': player.get('team'),
             'age': player.get('age'),

@@ -58,5 +58,18 @@ def loaded_stats(season:int) -> dict:
     return stats
          
 
+def load_all_data() -> dict:
+    players = loaded_players()
+    all_season_stats = {season: loaded_stats(season) for season in SEASONS}
+    
+    for player_id, player in players.items():
+        player['seasons'] = {}
+        for season, stats in all_season_stats.items():
+            if player_id in stats:
+                player['seasons'][season] = stats[player_id]
+    
+    return {pid: p for pid, p in players.items() if p["seasons"]}
+   
+   
 
             

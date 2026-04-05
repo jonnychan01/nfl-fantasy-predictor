@@ -1,0 +1,29 @@
+import numpy as np
+
+AGE_PEAK = {"QB": 32, "RB": 26, "WR": 28, "TE": 28, "K": 33}
+AGE_DECLINE_RATE = {"QB": 0.025, "RB": 0.055, "WR": 0.035, "TE": 0.03, "K": 0.02}
+
+def age_multiplier(age:int, position:str) -> float:
+    if age is None:
+        return 1.0
+    
+    peak_age = AGE_PEAK.get(position, 28)
+    decline_rate = AGE_DECLINE_RATE.get(position, 0.035)
+    years_past_peak = max(0, age - peak_age)
+    return round((1 - decline_rate) ** years_past_peak, 4)
+
+def calc_trend(ppg_values:list) -> float:
+    if len(ppg_values) < 2:
+        return 0.0
+    
+    x = np.arange(len(ppg_values))
+    coeffs = np.polyfit(x, ppg_values, 1)
+    slope = coeffs[0]
+
+    y_hat = np.polyval(coeffs, x)
+    ss_res = np.sum((ppg_values - y_hat) ** 2)
+    ss_tot = np.sum((ppg_values - np.mean(ppg_values)) ** 2)
+    r_squared = 1 - (ss_res / ss_tot) if ss_tot > 0 else 0
+
+    return round(slope * r_squared, 4)
+    

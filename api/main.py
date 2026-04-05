@@ -37,4 +37,26 @@ def get_players():
 
     return players_cache
 
+@app.get("/api/players")
+def get_all_players(position: str = None):
+    players = get_players()
+
+    if position and position != "ALL":
+        players = [p for p in players if p["position"] == position.upper()]
+
+    return players
+
+@app.get("/api/players/{player_id}")
+def get_player(player_id: str):
+    players = get_players()
+    for player in players:
+        if player["player_id"] == player_id:
+            return player
+    return {"error": "Player not found"}
+
+@app.get("/api/positions")
+def get_positions():
+    return ["ALL", "QB", "RB", "WR", "TE", "K", "DEF"]
+
+
     

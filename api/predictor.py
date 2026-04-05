@@ -55,3 +55,14 @@ def weighted_ppg(seasons:dict) -> float:
     if not values:
         return 0.0
     return round(np.average(values, weights=weights), 3)
+
+def role_stability(snap_percentage:dict, position:str) -> float:
+    if position in ("K", "DEF"):
+        return 1.0
+    if not snap_percentage or all(seasons == 0 for seasons in snap_percentage.values()):
+        return 0.3
+    
+    mean = np.mean(list(snap_percentage.values()))
+    std = np.std(snap_percentage)
+
+    return round(1 - (std / mean + 1e-6), 3) 

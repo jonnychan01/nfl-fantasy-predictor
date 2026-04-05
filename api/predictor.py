@@ -1,6 +1,6 @@
 import numpy as np
 
-AGE_PEAK = {"QB": 32, "RB": 26, "WR": 28, "TE": 28, "K": 33}
+AGE_PEAK = {"QB": 32, "RB": 24, "WR": 28, "TE": 28, "K": 33}
 AGE_DECLINE_RATE = {"QB": 0.025, "RB": 0.055, "WR": 0.035, "TE": 0.03, "K": 0.02}
 
 RECENT_SEASONS = [2023, 2024, 2025]
@@ -66,3 +66,26 @@ def role_stability(snap_percentage:dict, position:str) -> float:
     std = np.std(snap_percentage)
 
     return round(1 - (std / mean + 1e-6), 3) 
+
+def predict_kicker(player:dict) -> float:
+    seasons = player.get('seasons', {})
+    if not seasons:
+        return 0.0
+    
+    base_ppg = weighted_ppg(seasons)
+    age_mult = age_multiplier(player.get('age'), player.get('position'))
+    score = base_ppg * age_mult * 17
+
+    return round(max(score, 0), 1)
+
+def predict_def(player:dict) -> float:
+    seasons = player.get('seasons', {})
+    if not seasons:
+        return 0.0
+    
+    base_ppg = weighted_ppg(seasons)
+    ppg_values = [seasons[k]["ppg"] for k in sorted(seasons.keys())]
+    trend = calc_trend(ppg_values)
+    score = (base_ppg * 17) + (trend * 17 * 0.5)
+
+    return round(max(score, 0), 1)

@@ -89,3 +89,40 @@ def predict_def(player:dict) -> float:
     score = (base_ppg * 17) + (trend * 17 * 0.5)
 
     return round(max(score, 0), 1)
+
+def predict_skill(player:dict) -> float:
+    """For all non-kicker, non-defense positions"""
+    seasons = player.get('seasons', {})
+    if not seasons:
+        return 0.0
+    
+    base_ppg = weighted_ppg(seasons)
+    baseline = base_ppg * 17
+
+    ppg_values = [seasons[k]["ppg"] for k in sorted(seasons.keys()) if seasons[k].get('ppg', 0) > 0]
+    trend = calc_trend(ppg_values)
+    trend_adjustment = trend * 17
+
+    snap_percentages = {k: seasons[k].get('snap_percentage', 0) for k in seasons}
+    stability = role_stability(snap_percentages, player.get('position'))
+
+    age_mult = age_multiplier(player.get('age'), player.get('position'))
+
+    season_keys = sorted(seasons.keys())
+    last_season = season_keys[-1] 
+    injury_mult = 1.0
+
+    if last_season.get('games_played', 17) < 10:
+        injury_mult = 0.88
+
+    score = (baseline + trend_adjustment) * stability * age_mult * injury_mult
+    return round(max(score, 0), 1)
+
+def predict(player: dict) -> float:
+    position = player.get("position")
+    if position == "K":
+        return predict_kicker(player)
+    elif position == "DEF":
+        return predict_def(player)
+    else:
+        return predict_skill(player)

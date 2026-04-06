@@ -51,6 +51,7 @@ API runs on `http://localhost:8000` and frontend on `http://localhost:5173`.
 
 ## Future Implementations
 
+- Better styling in front end (centering of buttons, position colour scheme matching Sleeper)
 - Positional average regression for rookies and injury-returning players
 - O-line run blocking grades as a multiplier for RB projections
 - QB quality changing WR and TE projections

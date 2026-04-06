@@ -152,10 +152,10 @@
     font-weight: 700;
   }
 
-  .pos-badge.QB { background: #1e3a5f; color: #60a5fa; }
-  .pos-badge.RB { background: #1a3a2a; color: #34d399; }
-  .pos-badge.WR { background: #3a1a2a; color: #f472b6; }
-  .pos-badge.TE { background: #3a2a1a; color: #fb923c; }
-  .pos-badge.K  { background: #2a1a3a; color: #c084fc; }
-  .pos-badge.DEF { background: #2a2a1a; color: #facc15; }
+  .pos-badge.QB  { background: #2d0a1e; color: #fc2b6d; }
+  .pos-badge.RB  { background: #0a2420; color: #20ceb8; }
+  .pos-badge.WR  { background: #0f1f35; color: #59a7ff; }
+  .pos-badge.TE  { background: #2d1a08; color: #feae58; }
+  .pos-badge.K   { background: #1e0a2d; color: #c96cff; }
+  .pos-badge.DEF { background: #2d1508; color: #bf5f40; }
 </style>

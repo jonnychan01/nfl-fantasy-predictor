@@ -36,6 +36,7 @@
     margin: 0 auto;
     padding: 2rem;
     font-family: sans-serif;
+    text-align: center;
   }
 
   h1 {

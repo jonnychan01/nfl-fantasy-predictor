@@ -76,6 +76,7 @@
     gap: 0.5rem;
     margin-bottom: 1rem;
     flex-wrap: wrap;
+    justify-content: center;  
   }
 
   button {

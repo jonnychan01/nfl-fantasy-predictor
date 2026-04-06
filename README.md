@@ -36,7 +36,7 @@ cd api
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
-python3 fetch_and_cache.py  # fetch and cache Sleeper API data
+python3 fetch_and_cache.py  
 uvicorn main:app --reload
 ```
 
@@ -60,5 +60,3 @@ API runs on `http://localhost:8000` and frontend on `http://localhost:5173`.
 - Player detail modal on row click showing season-by-season breakdown
 - Some sort of graph or chart
 
-## Acknowledgements
-Claude was used to help with some code generations, debugging and styling throughout the project

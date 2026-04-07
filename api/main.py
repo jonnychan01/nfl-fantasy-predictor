@@ -1,7 +1,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from data import load_all_data
-from predictor import predict
+from predictor import confidence_blend, predict
+import numpy as np
 
 app = FastAPI()
 
@@ -32,6 +33,17 @@ def get_players():
                 "projected_points": predict(player),
                 "seasons": player["seasons"],
                 })
+            
+        for positions in ["QB", "RB", "WR", "TE", "K", "DEF"]:
+            pos_players = [p for p in players_cache if p["position"] == positions]
+            if not pos_players:
+                continue
+
+            top_scores = sorted([p["projected_points"] for p in pos_players], reverse=True)[:20]
+            pos_avg = round(np.mean(top_scores), 1)
+
+            for player in pos_players:
+                player["projected_points"] = confidence_blend(player["projected_points"], pos_avg, len(player["seasons"]))
 
         players_cache.sort(key=lambda x: x["projected_points"], reverse=True)
 

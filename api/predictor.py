@@ -33,6 +33,19 @@ def calc_trend(ppg_values: list) -> float:
 
     return round(slope * r_squared, 4)
 
+def confidence_blend(raw_score: float, position_avg: float, num_seasons: int) -> float:
+    if num_seasons >= 4:
+        confidence = 1.0
+    elif num_seasons == 3:
+        confidence = 0.85
+    elif num_seasons == 2:
+        confidence = 0.70
+    else:
+        confidence = 0.55
+    
+    return round((raw_score * confidence) + (position_avg * (1 - confidence)), 1)
+
+
 def injury_severity(season_data:dict) -> float:
 
     games_played = season_data.get("games_played", 0)

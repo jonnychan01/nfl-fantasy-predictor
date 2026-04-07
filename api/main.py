@@ -36,6 +36,12 @@ def get_players():
             if player.get("position") == "RB":
                 ml_weight = 0.7
                 rule_weight = 0.3
+            elif player.get("position") in "WR":
+                ml_weight = 0.2
+                rule_weight = 0.8
+            elif player.get("position") in "QB":
+                ml_weight = 0.12
+                rule_weight = 0.88
             else:
                 ml_weight = 0.3
                 rule_weight = 0.7

@@ -3,6 +3,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from data import load_all_data
 from predictor import confidence_blend, predict
 import numpy as np
+from predictor import confidence_blend, predict, age_multiplier, last_season_injury_mult
+from ml_predictor import get_ml_predictor
 
 app = FastAPI()
 
@@ -19,10 +21,27 @@ def get_players():
     global players_cache
 
     if players_cache is None:
-        players_cache = []
         raw = load_all_data()
+        ml = get_ml_predictor(raw)
+        players_cache = []
 
         for player_id, player in raw.items():
+            if not player.get("team"):
+                continue
+
+            raw_score = predict(player)
+            ml_score = ml.predict(player)
+            num_seasons = len(player["seasons"])
+
+            if player.get("position") == "RB":
+                ml_weight = 0.7
+                rule_weight = 0.3
+            else:
+                ml_weight = 0.3
+                rule_weight = 0.7
+
+            combined = round((raw_score * rule_weight) + (ml_score * ml_weight), 1)
+
             players_cache.append({
                 "player_id": player_id,
                 "name": player["name"],
@@ -30,20 +49,21 @@ def get_players():
                 "team": player["team"],
                 "age": player["age"],
                 "years_experience": player["years_experience"],
-                "projected_points": predict(player),
+                "projected_points": combined,
+                "num_seasons": num_seasons,
                 "seasons": player["seasons"],
-                })
-            
-        for positions in ["QB", "RB", "WR", "TE", "K", "DEF"]:
-            pos_players = [p for p in players_cache if p["position"] == positions]
+            })
+
+        for position in ["QB", "RB", "WR", "TE", "K", "DEF"]:
+            pos_players = [p for p in players_cache if p["position"] == position]
+
             if not pos_players:
                 continue
-
             top_scores = sorted([p["projected_points"] for p in pos_players], reverse=True)[:20]
             pos_avg = round(np.mean(top_scores), 1)
 
-            for player in pos_players:
-                player["projected_points"] = confidence_blend(player["projected_points"], pos_avg, len(player["seasons"]))
+            for p in pos_players:
+                p["projected_points"] = confidence_blend(p["projected_points"], pos_avg, p["num_seasons"])
 
         players_cache.sort(key=lambda x: x["projected_points"], reverse=True)
 

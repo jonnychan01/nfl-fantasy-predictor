@@ -13,6 +13,7 @@ Pulls historical NFL player stats from the Sleeper API across multiple seasons (
 - Python + FastAPI
 - Sleeper API (free, no auth required)
 - NumPy for data processing and trend calculations
+- Scikit-Learn
 
 **Frontend**
 - Svelte + Vite

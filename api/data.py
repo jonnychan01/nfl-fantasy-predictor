@@ -41,23 +41,6 @@ def loaded_stats(season:int) -> dict:
     for player_id, stat in raw_data.items():
         games_played = stat.get('gp', 0) or 0
         if games_played == 0:
-            stats[player_id] = {
-                "pts_ppr": 0,
-                "pts_half_ppr": 0,
-                "games_played": 0,
-                "ppg": 0,
-                "snap_percentage": 0,
-                "rush_yards": 0,
-                "rush_touchdowns": 0,
-                "rec": 0,
-                "rec_yards": 0,
-                "rec_targets": 0,
-                "rec_touchdowns": 0,
-                "pass_yards": 0,
-                "pass_touchdowns": 0,
-                "pass_interceptions": 0,
-                "fumbles": 0,
-            }
             continue
         
         offensive_snaps = stat.get('off_snp', 0) or 0

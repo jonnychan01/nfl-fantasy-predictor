@@ -118,8 +118,8 @@ def build_prediction_features(player: dict) -> np.ndarray:
 
 class NFLPredictor:
     def __init__(self):
-        self.model = Ridge(alpha=1.0)
-        self.scaler = StandardScaler()
+        self.models = {}   
+        self.scalers = {}  
         self.trained = False
 
     def train(self, all_players: dict):
@@ -128,30 +128,50 @@ class NFLPredictor:
             print("No training data!")
             return
 
-        X_scaled = self.scaler.fit_transform(X)
-        self.model.fit(X_scaled, y)
-        self.trained = True
+        for position in POSITIONS:
+            pos_encoded = POSITION_ENCODING[position]
+            mask = X[:, 16] == pos_encoded
+            X_pos = X[mask]
+            y_pos = y[mask]
 
-        scores = cross_val_score(self.model, X_scaled, y, cv=5, scoring='r2')
-        print(f"ML Model trained on {len(X)} samples")
-        print(f"Cross-val R² scores: {scores.round(3)}")
-        print(f"Mean R²: {scores.mean():.3f} (+/- {scores.std():.3f})")
+            if len(X_pos) < 10:
+                print(f"{position}: not enough data ({len(X_pos)} samples), skipping")
+                continue
+
+            scaler = StandardScaler()
+            X_scaled = scaler.fit_transform(X_pos)
+            model = Ridge(alpha=1.0)
+            model.fit(X_scaled, y_pos)
+
+            self.scalers[position] = scaler
+            self.models[position] = model
+
+            if len(X_pos) >= 5:
+                cv = min(5, len(X_pos))
+                scores = cross_val_score(model, X_scaled, y_pos, cv=cv, scoring='r2')
+                print(f"{position}: {len(X_pos)} samples | Mean R²: {scores.mean():.3f} (+/- {scores.std():.3f})")
+
+        self.trained = True
 
     def predict(self, player: dict) -> float:
         if not self.trained:
+            return 0.0
+
+        position = player.get("position", "WR")
+        if position not in self.models:
             return 0.0
 
         features = build_prediction_features(player)
         if features is None:
             return 0.0
 
-        features_scaled = self.scaler.transform(features)
-        ppg_pred = self.model.predict(features_scaled)[0]
+        features_scaled = self.scalers[position].transform(features)
+        ppg_pred = self.models[position].predict(features_scaled)[0]
 
         seasons = player.get("seasons", {})
         season_keys = sorted(seasons.keys())
         last_gp = seasons[season_keys[-1]].get("games_played", 17) if season_keys else 17
-        projected_games = min(17, max(last_gp, 14))  # assume healthy season
+        projected_games = min(17, max(last_gp, 14))
 
         return round(max(ppg_pred * projected_games, 0), 1)
 

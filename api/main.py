@@ -1,7 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from data import load_all_data
-from predictor import confidence_blend, predict
 import numpy as np
 from predictor import confidence_blend, predict, age_multiplier, last_season_injury_mult
 from ml_predictor import get_ml_predictor
@@ -34,14 +33,17 @@ def get_players():
             num_seasons = len(player["seasons"])
 
             if player.get("position") == "RB":
-                ml_weight = 0.7
-                rule_weight = 0.3
-            elif player.get("position") in "WR":
+                ml_weight = 0.85
+                rule_weight = 0.15
+            elif player.get("position") == "WR":   
                 ml_weight = 0.2
                 rule_weight = 0.8
-            elif player.get("position") in "QB":
+            elif player.get("position") == "QB":
                 ml_weight = 0.12
                 rule_weight = 0.88
+            elif player.get("position") in ("K", "DEF"):
+                ml_weight = 0.1   
+                rule_weight = 0.9
             else:
                 ml_weight = 0.3
                 rule_weight = 0.7
@@ -69,7 +71,7 @@ def get_players():
             pos_avg = round(np.mean(top_scores), 1)
 
             for p in pos_players:
-                if p["projected_points"] < 30:
+                if p["projected_points"] < 60:
                     continue
                 p["projected_points"] = confidence_blend(
                     p["projected_points"],

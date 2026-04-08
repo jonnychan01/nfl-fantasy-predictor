@@ -1,9 +1,8 @@
 import numpy as np
 
-AGE_PEAK = {"QB": 32, "RB": 25, "WR": 28, "TE": 28, "K": 33}
-AGE_DECLINE_RATE = {"QB": 0.025, "RB": 0.03, "WR": 0.035, "TE": 0.03, "K": 0.02}
 RECENT_SEASONS = ["2023", "2024", "2025"]
-
+AGE_PEAK = {"QB": 29, "RB": 24, "WR": 28, "TE": 28, "K": 33}
+AGE_DECLINE_RATE = {"QB": 0.025, "RB": 0.06, "WR": 0.035, "TE": 0.03, "K": 0.02}
 
 def age_multiplier(age: int, position: str) -> float:
     if age is None:
@@ -12,9 +11,9 @@ def age_multiplier(age: int, position: str) -> float:
     peak_age = AGE_PEAK.get(position, 28)
     decline_rate = AGE_DECLINE_RATE.get(position, 0.035)
     years_past_peak = max(0, age - peak_age)
+    raw = (1 - decline_rate) ** years_past_peak
 
-    return round((1 - decline_rate) ** years_past_peak, 4)
-
+    return round(0.5 + 0.5 * raw, 4)  
 
 def calc_trend(ppg_values: list) -> float:
     if len(ppg_values) < 2:
@@ -37,11 +36,11 @@ def confidence_blend(raw_score: float, position_avg: float, num_seasons: int) ->
     if num_seasons >= 4:
         confidence = 1.0
     elif num_seasons == 3:
-        confidence = 0.85
+        confidence = 0.92
     elif num_seasons == 2:
-        confidence = 0.70
+        confidence = 0.85
     else:
-        confidence = 0.55
+        confidence = 0.75
     
     return round((raw_score * confidence) + (position_avg * (1 - confidence)), 1)
 
@@ -189,6 +188,7 @@ def predict_kicker(player: dict) -> float:
     
     base_ppg = weighted_ppg(seasons)
     age_mult = age_multiplier(player.get("age"), player.get("position"))
+
     score = base_ppg * 17 * age_mult
 
     return round(max(score, 0), 1)
@@ -225,14 +225,14 @@ def predict_skill(player: dict) -> float:
  
     snap_percentages = {k: seasons[k].get("snap_percentage", 0) for k in seasons}
     stability = role_stability(snap_percentages, player.get("position"))
- 
-    age_mult = age_multiplier(player.get("age"), player.get("position"))
+
     injury_mult = last_season_injury_mult(seasons)
+    age_mult = age_multiplier(player.get("age"), player.get("position"))
 
     if zero_streak == 1:
         injury_mult *= 0.6
  
-    score = (baseline + trend_adjustment) * stability * age_mult * injury_mult
+    score = (baseline + trend_adjustment) * stability * injury_mult * age_mult
     return round(max(score, 0), 1)
 
 

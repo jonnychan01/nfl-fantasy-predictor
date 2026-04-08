@@ -7,6 +7,7 @@ warnings.filterwarnings('ignore')
 
 POSITIONS = ["QB", "RB", "WR", "TE", "K", "DEF"]
 POSITION_ENCODING = {pos: i for i, pos in enumerate(POSITIONS)}
+POSITION_PEAK_AGE = {"QB": 29, "RB": 24, "WR": 28, "TE": 28, "K": 33}
 
 def build_training_data(all_players: dict):
     X, y, meta = [], [], []
@@ -58,7 +59,9 @@ def build_training_data(all_players: dict):
                 current.get("pass_touchdowns", 0) / 17,
                 current.get("pass_interceptions", 0) / 17,
                 current.get("fumbles", 0) / 17,
-                max(0, age_at_season),
+                age_at_season,
+                age_at_season ** 2,                         
+                max(0, age_at_season - POSITION_PEAK_AGE.get(position, 28)),
                 years_exp,
                 pos_encoded,
                 i / max(len(season_keys) - 1, 1),  
@@ -90,7 +93,6 @@ def build_prediction_features(player: dict) -> np.ndarray:
     pos_encoded = POSITION_ENCODING.get(position, 2)
     age = player.get("age", 25) or 25
     years_exp = player.get("years_experience", 0) or 0
-    career_prog = min(len(season_keys) / 6, 1.0)
 
     features = [
         last.get("ppg", 0),
@@ -108,9 +110,11 @@ def build_prediction_features(player: dict) -> np.ndarray:
         last.get("pass_interceptions", 0) / 17,
         last.get("fumbles", 0) / 17,
         age,
+        age ** 2,
+        max(0, age - POSITION_PEAK_AGE.get(position, 28)),
         years_exp,
         pos_encoded,
-        career_prog,
+        min(len(season_keys) / 6, 1.0),
     ]
 
     return np.array(features).reshape(1, -1)

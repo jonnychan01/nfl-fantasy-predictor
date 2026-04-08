@@ -5,7 +5,7 @@ A full-stack NFL fantasy football prediction app built with Python and Svelte.
 
 ## What it does
 
-Pulls historical NFL player stats from the Sleeper API across multiple seasons (2020–2025) and uses a custom prediction model to project fantasy points for the upcoming season. Supports PPR scoring and covers QB, RB, WR, TE, K, and DEF positions.
+Pulls historical NFL player stats from the Sleeper API across multiple seasons (2020–2025) and uses a hybrid prediction model to project fantasy points for the upcoming season. Supports PPR scoring and covers QB, RB, WR, TE, K, and DEF positions.
 
 ## Tech Stack
 
@@ -13,20 +13,25 @@ Pulls historical NFL player stats from the Sleeper API across multiple seasons (
 - Python + FastAPI
 - Sleeper API (free, no auth required)
 - NumPy for data processing and trend calculations
-- Scikit-Learn
+- Scikit-learn (Ridge regression, per-position ML models)
 
 **Frontend**
 - Svelte + Vite
-- Sortable, filterable player table
+- Sortable, filterable and searchable player table
 - Position badges and dark theme UI
 
 ## Prediction Model
 
-The model uses multiple seasons of data to generate projections:
+The model uses a hybrid rule-based + machine learning approach:
+
 - Weighted PPG (recent seasons weighted more heavily)
-- Position-specific age decline curves
+- Injury history penalty with recovery factor
 - Role stability scoring via snap percentage
-- Injury history penalty
+- Softened age decline curves (rule-based floor, not hard penalty)
+- Consecutive zero-game season detection (retirement/injury streaks)
+- Per-position Ridge regression ML models trained on historical data
+- Age and experience-aware ML/rule blending weights (young players trust rule-based more)
+- Confidence blending toward position average based on seasons of data
 - Separate simpler models for K and DEF
 
 ## Getting Started
@@ -51,13 +56,8 @@ npm run dev
 API runs on `http://localhost:8000` and frontend on `http://localhost:5173`.
 
 ## Future Implementations
-
-- Better styling in front end (centering of buttons, position colour scheme matching Sleeper)
-- Positional average regression for rookies and injury-returning players
 - O-line run blocking grades as a multiplier for RB projections
-- QB quality changing WR and TE projections
 - Strength of schedule adjustments per player
-- Machine learning model (Hopefully) to help with more accurate projections
 - Player detail modal on row click showing season-by-season breakdown
 - Some sort of graph or chart
-
+- Week by week predictions 

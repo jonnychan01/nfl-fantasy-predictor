@@ -6,11 +6,14 @@
   let selectedPosition = 'ALL'
   let sortColumn = 'projected_points'
   let sortAsc = false
+  let searchQuery = ''
 
-  $: filtered = selectedPosition === 'ALL'
-    ? players
-    : players.filter(p => p.position === selectedPosition)
+  
 
+  $: filtered = players
+    .filter(p => selectedPosition === 'ALL' || p.position === selectedPosition)
+    .filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()))
+        .filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()))
   $: sorted = [...filtered].sort((a, b) => {
     const valA = a[sortColumn] ?? ''
     const valB = b[sortColumn] ?? ''
@@ -32,9 +35,15 @@
     if (sortColumn !== col) return '↕'
     return sortAsc ? '↑' : '↓'
   }
+
 </script>
 
 <div class="controls">
+  <input
+    type="text"
+    placeholder="Search players..."
+    bind:value={searchQuery}
+    />
   {#each POSITIONS as pos}
     <button
       class:active={selectedPosition === pos}
@@ -151,6 +160,22 @@
     font-size: 0.75rem;
     font-weight: 700;
   }
+
+  input {
+    width: 100%;
+    padding: 0.6rem 1rem;
+    margin-bottom: 1rem;
+    border-radius: 8px;
+    border: 1px solid #374151;
+    background: #f9fafb;
+    color: #1f2937;
+    font-size: 0.9rem;
+    outline: none;
+    }
+
+    input:focus {
+      border-color: #3b82f6;
+    }
 
   .pos-badge.QB  { background: #2d0a1e; color: #fc2b6d; }
   .pos-badge.RB  { background: #0a2420; color: #20ceb8; }

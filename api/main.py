@@ -69,7 +69,13 @@ def get_players():
             pos_avg = round(np.mean(top_scores), 1)
 
             for p in pos_players:
-                p["projected_points"] = confidence_blend(p["projected_points"], pos_avg, p["num_seasons"])
+                if p["projected_points"] < 30:
+                    continue
+                p["projected_points"] = confidence_blend(
+                    p["projected_points"],
+                    pos_avg,
+                    p["num_seasons"]
+            )
 
         players_cache.sort(key=lambda x: x["projected_points"], reverse=True)
 

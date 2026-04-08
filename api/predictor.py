@@ -45,6 +45,18 @@ def confidence_blend(raw_score: float, position_avg: float, num_seasons: int) ->
     
     return round((raw_score * confidence) + (position_avg * (1 - confidence)), 1)
 
+def consecutive_zero_seasons(seasons: dict) -> int:
+    season_keys = sorted(seasons.keys(), reverse=True)
+    count = 0
+
+    for key in season_keys:
+        if seasons[key].get("games_played", 0) == 0:
+            count += 1
+        else:
+            break
+
+    return count
+
 
 def injury_severity(season_data:dict) -> float:
 
@@ -199,6 +211,10 @@ def predict_skill(player: dict) -> float:
     seasons = player.get("seasons", {})
     if not seasons:
         return 0.0
+    
+    zero_streak = consecutive_zero_seasons(seasons)
+    if zero_streak >= 2:
+        return 0.0
  
     base_ppg = weighted_ppg(seasons)
     baseline = base_ppg * 17
@@ -212,6 +228,9 @@ def predict_skill(player: dict) -> float:
  
     age_mult = age_multiplier(player.get("age"), player.get("position"))
     injury_mult = last_season_injury_mult(seasons)
+
+    if zero_streak == 1:
+        injury_mult *= 0.6
  
     score = (baseline + trend_adjustment) * stability * age_mult * injury_mult
     return round(max(score, 0), 1)

@@ -71,9 +71,16 @@ def load_all_data() -> dict:
     
     for player_id, player in players.items():
         player['seasons'] = {}
+        first_season = None
+        for season in SEASONS:
+            if player_id in all_season_stats[season]:
+                first_season = season
+                break
         for season, stats in all_season_stats.items():
             if player_id in stats:
                 player['seasons'][season] = stats[player_id]
+            elif first_season and season > first_season:
+                player['seasons'][season] = {"games_played": 0, "ppg": 0, "snap_percentage": 0}
     
     return {pid: p for pid, p in players.items() if p["seasons"]}
    

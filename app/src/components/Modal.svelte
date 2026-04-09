@@ -166,7 +166,7 @@
     border-radius: 12px;
     padding: 2rem;
     width: 95%;
-    max-width: 780px;
+    max-width: 1000px;
     max-height: 90vh;
     overflow-y: auto;
   }

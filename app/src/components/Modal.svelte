@@ -164,9 +164,11 @@
     background: #111827;
     border: 1px solid #374151;
     border-radius: 12px;
-    padding: 1.5rem;
-    width: 90%;
-    max-width: 560px;
+    padding: 2rem;
+    width: 95%;
+    max-width: 780px;
+    max-height: 90vh;
+    overflow-y: auto;
   }
 
   .modal-header {

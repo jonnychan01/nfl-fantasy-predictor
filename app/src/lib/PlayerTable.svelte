@@ -1,4 +1,6 @@
 <script>
+  import Modal from '../components/Modal.svelte'
+
   export let players = []
 
   const POSITIONS = ['ALL', 'QB', 'RB', 'WR', 'TE', 'K', 'DEF']
@@ -7,13 +9,12 @@
   let sortColumn = 'projected_points'
   let sortAsc = false
   let searchQuery = ''
-
-  
+  let selectedPlayer = null
 
   $: filtered = players
     .filter(p => selectedPosition === 'ALL' || p.position === selectedPosition)
     .filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()))
-        .filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()))
+
   $: sorted = [...filtered].sort((a, b) => {
     const valA = a[sortColumn] ?? ''
     const valB = b[sortColumn] ?? ''
@@ -35,7 +36,6 @@
     if (sortColumn !== col) return '↕'
     return sortAsc ? '↑' : '↓'
   }
-
 </script>
 
 <div class="controls">
@@ -43,7 +43,7 @@
     type="text"
     placeholder="Search players..."
     bind:value={searchQuery}
-    />
+  />
   {#each POSITIONS as pos}
     <button
       class:active={selectedPosition === pos}
@@ -67,7 +67,7 @@
     </thead>
     <tbody>
       {#each sorted as player}
-        <tr>
+        <tr on:click={() => selectedPlayer = player} style="cursor:pointer">
           <td>{player.name}</td>
           <td><span class="pos-badge {player.position}">{player.position}</span></td>
           <td>{player.team ?? '—'}</td>
@@ -79,13 +79,17 @@
   </table>
 </div>
 
+{#if selectedPlayer}
+  <Modal player={selectedPlayer} onClose={() => selectedPlayer = null} />
+{/if}
+
 <style>
   .controls {
     display: flex;
     gap: 0.5rem;
     margin-bottom: 1rem;
     flex-wrap: wrap;
-    justify-content: center;  
+    justify-content: center;
   }
 
   button {
@@ -171,11 +175,11 @@
     color: #1f2937;
     font-size: 0.9rem;
     outline: none;
-    }
+  }
 
-    input:focus {
-      border-color: #3b82f6;
-    }
+  input:focus {
+    border-color: #3b82f6;
+  }
 
   .pos-badge.QB  { background: #2d0a1e; color: #fc2b6d; }
   .pos-badge.RB  { background: #0a2420; color: #20ceb8; }

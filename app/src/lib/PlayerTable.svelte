@@ -10,6 +10,7 @@
   let sortAsc = false
   let searchQuery = ''
   let selectedPlayer = null
+  let visibleCount = 50
 
   $: filtered = players
     .filter(p => selectedPosition === 'ALL' || p.position === selectedPosition)
@@ -22,6 +23,8 @@
     if (valA > valB) return sortAsc ? 1 : -1
     return 0
   })
+
+  $: paginated = sorted.slice(0, visibleCount)
 
   function handleSort(col) {
     if (sortColumn === col) {
@@ -66,17 +69,47 @@
       </tr>
     </thead>
     <tbody>
-      {#each sorted as player}
-        <tr on:click={() => selectedPlayer = player} style="cursor:pointer">
-          <td>{player.name}</td>
-          <td><span class="pos-badge {player.position}">{player.position}</span></td>
-          <td>{player.team ?? '—'}</td>
-          <td>{player.age ?? '—'}</td>
-          <td class="pts">{player.projected_points}</td>
-        </tr>
-      {/each}
-    </tbody>
+    {#each paginated as player}
+      <tr on:click={() => selectedPlayer = player} style="cursor:pointer">
+        <td>
+          <div class="player-cell">
+            {#if player.position === 'DEF'}
+              {#key player.player_id}
+              <img 
+                src={`https://sleepercdn.com/images/team_logos/nfl/${player.team?.toLowerCase()}.png`}
+                alt={player.team}
+                class="player-avatar"
+                loading="lazy"
+                on:error={(e) => { e.currentTarget.setAttribute('src', '/placeholder.png') }}
+              />
+              {/key}
+            {:else}
+              {#key player.player_id}
+              <img 
+                src={`https://sleepercdn.com/content/nfl/players/thumb/${player.player_id}.jpg`}
+                alt={player.name}
+                class="player-avatar"
+                loading="lazy"
+                on:error={(e) => { e.currentTarget.setAttribute('src', '/placeholder.png') }}
+              />
+              {/key}
+            {/if}
+            {player.name}
+          </div>
+        </td>
+        <td><span class="pos-badge {player.position}">{player.position}</span></td>
+        <td>{player.team ?? '—'}</td>
+        <td>{player.age ?? '—'}</td>
+        <td class="pts">{player.projected_points}</td>
+      </tr>
+    {/each}
+  </tbody>
   </table>
+    {#if visibleCount < sorted.length}
+      <button on:click={() => visibleCount += 50} class="load-more">
+        Load more
+      </button>
+    {/if}
 </div>
 
 {#if selectedPlayer}
@@ -179,6 +212,36 @@
 
   input:focus {
     border-color: #3b82f6;
+  }
+
+  .player-cell {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+  }
+
+.player-avatar {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    object-fit: cover;
+    background: #FFFFFF;
+  }
+
+  .load-more {
+    width: 100%;
+    margin-top: 1rem;
+    padding: 0.6rem;
+    background: #1f2937;
+    border: 1px solid #374151;
+    color: #9ca3af;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+
+  .load-more:hover {
+    background: #374151;
+    color: #f9fafb;
   }
 
   .pos-badge.QB  { background: #2d0a1e; color: #fc2b6d; }

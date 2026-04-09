@@ -8,6 +8,19 @@
   let canvas
   let chart
   let chartMode = 'ppg'
+  let opponent = ''
+  let weeklyProjection = null
+
+  const NFL_TEAMS = ['ARI','ATL','BAL','BUF','CAR','CHI','CIN','CLE','DAL','DEN','DET','GB','HOU','IND','JAX','KC','LAC','LAR','LV','MIA','MIN','NE','NO','NYG','NYJ','PHI','PIT','SEA','SF','TB','TEN','WAS']
+
+  async function fetchWeekly() {
+    if (!opponent) {
+      weeklyProjection = null
+      return
+    }
+    const res = await fetch(`http://localhost:8000/api/players/${player.player_id}/weekly?opponent=${opponent}`)
+    weeklyProjection = await res.json()
+  }
 
   function toggleChart() {
   chartMode = chartMode === 'ppg' ? 'total' : 'ppg'
@@ -134,6 +147,24 @@
       <div class="stat"><span>Age</span><strong>{player.age ?? '—'}</strong></div>
       <div class="stat"><span>Experience</span><strong>{player.years_experience}y</strong></div>
       <div class="stat"><span>Projected</span><strong class="pts">{player.projected_points}</strong></div>
+    </div>
+    <div class="weekly-section">
+    <h3>Weekly Projection</h3>
+    <div class="weekly-controls">
+      <select bind:value={opponent} on:change={fetchWeekly}>
+        <option value="">Select opponent...</option>
+        {#each NFL_TEAMS as team}
+          <option value={team}>{team}</option>
+        {/each}
+      </select>
+        {#if weeklyProjection}
+          <div class="weekly-result">
+            <span>vs {opponent}</span>
+            <strong class="pts">{weeklyProjection.adjusted_projection} pts</strong>
+            <span class="mult">(opp mult: {weeklyProjection.opponent_multiplier}x)</span>
+          </div>
+        {/if}
+      </div>
     </div>
     <div class="chart-toggle">
       <button 

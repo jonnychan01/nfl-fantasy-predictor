@@ -4,6 +4,7 @@ from data import load_all_data
 import numpy as np
 from predictor import confidence_blend, predict
 from ml_predictor import get_ml_predictor
+from defense_rankings import opponent_multiplier
 
 app = FastAPI()
 
@@ -121,6 +122,32 @@ def get_player(player_id: str):
 @app.get("/api/positions")
 def get_positions():
     return ["ALL", "QB", "RB", "WR", "TE", "K", "DEF"]
+
+@app.get("/api/players/{player_id}/weekly")
+def get_weekly_projection(player_id: str, opponent: str = None):
+    players = get_players()
+    player = next((p for p in players if p["player_id"] == player_id), None)
+    
+    if not player:
+        return {"error": "Player not found"}
+    
+    base_weekly = round(player["projected_points"] / 17, 1)
+    
+    if opponent:
+        opp_mult = opponent_multiplier(opponent.upper())
+        adjusted = round(base_weekly * opp_mult, 1)
+    else:
+        adjusted = base_weekly
+        opp_mult = 1.0
+
+    return {
+        "player_id": player_id,
+        "name": player["name"],
+        "base_weekly_projection": base_weekly,
+        "opponent": opponent,
+        "opponent_multiplier": opp_mult,
+        "adjusted_projection": adjusted,
+    }
 
 
     

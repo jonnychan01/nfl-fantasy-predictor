@@ -4,6 +4,9 @@
   export let players = []
 
   const POSITIONS = ['ALL', 'QB', 'RB', 'WR', 'TE', 'K', 'DEF']
+  const PLACEHOLDER = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='38' height='38' 
+  viewBox='0 0 38 38'%3E%3Ccircle cx='19' cy='19' r='19' fill='%23ffffff'/%3E%3Ccircle cx='19' cy='15' r='7' 
+  fill='%239ca3af'/%3E%3Cellipse cx='19' cy='32' rx='12' ry='8' fill='%239ca3af'/%3E%3C/svg%3E`
 
   let selectedPosition = 'ALL'
   let sortColumn = 'projected_points'
@@ -80,7 +83,7 @@
                 alt={player.team}
                 class="player-avatar"
                 loading="lazy"
-                on:error={(e) => { e.currentTarget.setAttribute('src', '/placeholder.png') }}
+                on:error={(e) => { e.currentTarget.setAttribute('src', PLACEHOLDER) }}
               />
               {/key}
             {:else}
@@ -90,7 +93,7 @@
                 alt={player.name}
                 class="player-avatar"
                 loading="lazy"
-                on:error={(e) => { e.currentTarget.setAttribute('src', '/placeholder.png') }}
+                on:error={(e) => { e.currentTarget.setAttribute('src', PLACEHOLDER) }}
               />
               {/key}
             {/if}

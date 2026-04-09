@@ -51,7 +51,7 @@ def get_players():
                     ml_weight = 0.8
                     rule_weight = 0.2
             elif player.get("position") == "QB":
-                if age <=24 or num_seasons <= 2:
+                if age <=24 and num_seasons <= 2:
                     ml_weight = 0.9 # way better cuz samples for young qb are very high compared to other positions 
                     rule_weight = 0.1
                 else:

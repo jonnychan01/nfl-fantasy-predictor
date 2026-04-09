@@ -7,6 +7,36 @@
 
   let canvas
   let chart
+  let chartMode = 'ppg'
+
+  function toggleChart() {
+  chartMode = chartMode === 'ppg' ? 'total' : 'ppg'
+  updateChart()
+  }
+
+  function updateChart() {
+  const seasons = player.seasons
+  const historicalLabels = Object.keys(seasons).sort()
+
+  const historicalData = historicalLabels.map(k => 
+      chartMode === 'ppg' 
+      ? (seasons[k].ppg ?? 0) 
+      : (seasons[k].pts_ppr ?? 0)
+  )
+
+  const projectedValue = chartMode === 'ppg' 
+      ? player.projected_points / 17 
+      : player.projected_points
+
+  chart.data.datasets[0].data = [...historicalData, null]
+  chart.data.datasets[1].data = [...historicalData.map(() => null), projectedValue]
+  chart.data.datasets[2].data = [
+      ...historicalData.map((_, i) => i === historicalData.length - 1 ? historicalData[historicalData.length - 1] : null),
+      projectedValue
+  ]
+  chart.update()
+  }
+
 
   onMount(() => {
     const seasons = player.seasons
@@ -71,7 +101,7 @@
         },
         scales: {
             x: { ticks: { color: '#9ca3af' }, grid: { color: '#1f2937' } },
-            y: { ticks: { color: '#9ca3af' }, grid: { color: '#1f2937' } },
+            y: { min: 0, ticks: { color: '#9ca3af' }, grid: { color: '#1f2937' } },
         }
         }
     })
@@ -104,6 +134,16 @@
       <div class="stat"><span>Age</span><strong>{player.age ?? '—'}</strong></div>
       <div class="stat"><span>Experience</span><strong>{player.years_experience}y</strong></div>
       <div class="stat"><span>Projected</span><strong class="pts">{player.projected_points}</strong></div>
+    </div>
+    <div class="chart-toggle">
+      <button 
+        class:active={chartMode === 'ppg'} 
+        on:click={() => { chartMode = 'ppg'; updateChart() }}
+      >PPG</button>
+      <button 
+        class:active={chartMode === 'total'} 
+        on:click={() => { chartMode = 'total'; updateChart() }}
+      >Total Pts</button>
     </div>
     <canvas bind:this={canvas}></canvas>
   </div>
@@ -182,6 +222,29 @@
     border-radius: 4px;
     font-size: 0.75rem;
     font-weight: 700;
+  }
+
+  .chart-toggle {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+  } 
+
+  .chart-toggle button {
+    padding: 0.3rem 0.8rem;
+    border: 1px solid #374151;
+    background: #1f2937;
+    color: #9ca3af;
+    border-radius: 999px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    transition: all 0.2s;
+  }
+
+  .chart-toggle button.active {
+    background: #3b82f6;
+    border-color: #3b82f6;
+    color: white;
   }
 
   .pos-badge.QB  { background: #2d0a1e; color: #fc2b6d; }

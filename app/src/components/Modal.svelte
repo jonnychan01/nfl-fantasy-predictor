@@ -9,6 +9,7 @@
   let chart
   let chartMode = 'ppg'
   let weeklyData = null
+  let activeTab = 'overview'
 
   const DEFENSE_RANKINGS = {
   "SF": 17.2, "BAL": 18.1, "BUF": 18.4, "PHI": 18.9, "KC": 19.2,
@@ -185,37 +186,52 @@
       </div>
       <button class="close" on:click={onClose}>✕</button>
     </div>
-    {#if weeklyData && weeklyData.length > 0}
-      <div class="weekly-scroll-section">
-        <h3>2026 Schedule Projections <span class="placeholder-tag">placeholder</span></h3>
-        <div class="weekly-scroll">
-          {#each weeklyData as week, i}
-            <div class="week-card">
-              <span class="week-num">Wk {week.week}</span>
-              <img 
-                class="week-logo"
-                src={`https://sleepercdn.com/images/team_logos/nfl/${week.opponent?.toLowerCase()}.png`}
-                alt={week.opponent}
-                title={week.home ? week.opponent : `@${week.opponent}`}
-              />
-              <span class="week-away" style={week.home ? 'visibility: hidden' : ''}>@</span>
-              <span class="week-pts pts">{(player.projected_points / 17 * weeklyMultipliers[i]).toFixed(1)}</span>
-            </div>
-          {/each}
-        </div>
-      </div>
-    {/if}
-    <div class="chart-toggle">
-      <button 
-        class:active={chartMode === 'ppg'} 
-        on:click={() => { chartMode = 'ppg'; updateChart() }}
-      >PPG</button>
-      <button 
-        class:active={chartMode === 'total'} 
-        on:click={() => { chartMode = 'total'; updateChart() }}
-      >Total Pts</button>
+
+    <div class="tab-bar">
+      <button class:active={activeTab === 'overview'} on:click={() => activeTab = 'overview'}>Overview</button>
+      <button class:active={activeTab === 'splits'} on:click={() => activeTab = 'splits'}>Splits</button>
     </div>
-    <canvas bind:this={canvas}></canvas>
+
+    <div style={activeTab === 'overview' ? '' : 'display: none'}>
+      {#if weeklyData && weeklyData.length > 0}
+        <div class="weekly-scroll-section">
+          <h3>2026 Schedule Projections <span class="placeholder-tag">placeholder</span></h3>
+          <div class="weekly-scroll">
+            {#each weeklyData as week, i}
+              <div class="week-card">
+                <span class="week-num">Wk {week.week}</span>
+                <img 
+                  class="week-logo"
+                  src={`https://sleepercdn.com/images/team_logos/nfl/${week.opponent?.toLowerCase()}.png`}
+                  alt={week.opponent}
+                  title={week.home ? week.opponent : `@${week.opponent}`}
+                />
+                <span class="week-away" style={week.home ? 'visibility: hidden' : ''}>@</span>
+                <span class="week-pts pts">{(player.projected_points / 17 * weeklyMultipliers[i]).toFixed(1)}</span>
+              </div>
+            {/each}
+          </div>
+        </div>
+      {/if}
+      <div class="chart-toggle">
+        <button 
+          class:active={chartMode === 'ppg'} 
+          on:click={() => { chartMode = 'ppg'; updateChart() }}
+        >PPG</button>
+        <button 
+          class:active={chartMode === 'total'} 
+          on:click={() => { chartMode = 'total'; updateChart() }}
+        >Total Pts</button>
+      </div>
+      <canvas bind:this={canvas}></canvas>
+    </div>
+
+    <div style={activeTab === 'splits' ? '' : 'display: none'}>
+      <div class="empty-tab">
+        <p>Coming soon</p>
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -402,6 +418,39 @@
     vertical-align: middle;
     margin-left: 0.25rem;
     margin-right: 0.1rem;
+  }
+
+  .tab-bar {
+    display: flex;
+    gap: 0;
+    border-bottom: 1px solid #374151;
+    margin-bottom: 1.5rem;
+  }
+
+  .tab-bar button {
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: #6b7280;
+    padding: 0.6rem 1.2rem;
+    cursor: pointer;
+    font-size: 0.85rem;
+    margin-bottom: -1px;
+    transition: all 0.2s;
+  }
+
+  .tab-bar button.active {
+    color: #f9fafb;
+    border-bottom-color: #3b82f6;
+  }
+
+  .empty-tab {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 200px;
+    color: #6b7280;
+    font-size: 0.9rem;
   }
 
   .pos-badge.QB  { background: #2d0a1e; color: #fc2b6d; }

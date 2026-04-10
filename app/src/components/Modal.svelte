@@ -22,10 +22,13 @@
 
   const LEAGUE_AVG = Object.values(DEFENSE_RANKINGS).reduce((a, b) => a + b, 0) / Object.keys(DEFENSE_RANKINGS).length
 
-  function getOpponentMult(opponent) {
-    const pts = DEFENSE_RANKINGS[opponent] ?? LEAGUE_AVG
-    return pts / LEAGUE_AVG
-  }
+  $: weeklyMultipliers = (() => {
+    if (!weeklyData) return []
+    const rawMults = weeklyData.map(w => DEFENSE_RANKINGS[w.opponent] ?? LEAGUE_AVG)
+    const scheduleAvg = rawMults.reduce((a, b) => a + b, 0) / rawMults.length
+    return rawMults.map(m => m / scheduleAvg)
+  })()
+
   function toggleChart() {
   chartMode = chartMode === 'ppg' ? 'total' : 'ppg'
   updateChart()
@@ -159,7 +162,7 @@
       <div class="weekly-scroll-section">
         <h3>2026 Schedule Projections <span class="placeholder-tag">placeholder</span></h3>
         <div class="weekly-scroll">
-          {#each weeklyData as week}
+          {#each weeklyData as week, i}
             <div class="week-card">
               <span class="week-num">Wk {week.week}</span>
               <img 
@@ -169,7 +172,7 @@
                 title={week.home ? week.opponent : `@${week.opponent}`}
               />
               <span class="week-away" style={week.home ? 'visibility: hidden' : ''}>@</span>
-              <span class="week-pts pts">{(player.projected_points / 17 * getOpponentMult(week.opponent)).toFixed(1)}</span>
+              <span class="week-pts pts">{(player.projected_points / 17 * weeklyMultipliers[i]).toFixed(1)}</span>
             </div>
           {/each}
         </div>

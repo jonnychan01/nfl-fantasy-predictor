@@ -20,6 +20,10 @@
   "CAR": 27.0, "TEN": 27.3
   }
 
+  const PLACEHOLDER = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='38' height='38' 
+  viewBox='0 0 38 38'%3E%3Ccircle cx='19' cy='19' r='19' fill='%23ffffff'/%3E%3Ccircle cx='19' cy='15' r='7' 
+  fill='%239ca3af'/%3E%3Cellipse cx='19' cy='32' rx='12' ry='8' fill='%239ca3af'/%3E%3C/svg%3E`
+
   const LEAGUE_AVG = Object.values(DEFENSE_RANKINGS).reduce((a, b) => a + b, 0) / Object.keys(DEFENSE_RANKINGS).length
 
   $: weeklyMultipliers = (() => {
@@ -146,17 +150,40 @@
     tabindex="-1"
   >
     <div class="modal-header">
-      <div>
-        <h2>{player.name}</h2>
-        <span class="pos-badge {player.position}">{player.position}</span>
-        <span class="team">{player.team}</span>
+      <div style="display: flex; align-items: center; gap: 1rem;">
+        {#if player.position === 'DEF'}
+          <img
+            src={`https://sleepercdn.com/images/team_logos/nfl/${player.team?.toLowerCase()}.png`}
+            alt={player.team}
+            class="player-face"
+            on:error={(e) => { e.currentTarget.setAttribute('src', PLACEHOLDER) }}
+          />
+        {:else}
+          <img
+            src={`https://sleepercdn.com/content/nfl/players/thumb/${player.player_id}.jpg`}
+            alt={player.name}
+            class="player-face"
+            on:error={(e) => { e.currentTarget.setAttribute('src', PLACEHOLDER) }}
+          />
+        {/if}
+        <div>
+          <h2>{player.name}</h2>
+          <span class="pos-badge {player.position}">{player.position}</span>
+          <img
+            src={`https://sleepercdn.com/images/team_logos/nfl/${player.team?.toLowerCase()}.png`}
+            alt={player.team}
+            class="team-logo-inline"
+            on:error={(e) => { e.currentTarget.setAttribute('src', PLACEHOLDER) }}
+          />
+          <span class="team">{player.team}</span>
+        </div>
+        <div class="stats">
+          <div class="stat"><span>Age</span><strong>{player.age ?? '—'}</strong></div>
+          <div class="stat"><span>Experience</span><strong>{player.years_experience}y</strong></div>
+          <div class="stat"><span>Projected</span><strong class="pts">{player.projected_points}</strong></div>
+        </div>
       </div>
       <button class="close" on:click={onClose}>✕</button>
-    </div>
-    <div class="stats">
-      <div class="stat"><span>Age</span><strong>{player.age ?? '—'}</strong></div>
-      <div class="stat"><span>Experience</span><strong>{player.years_experience}y</strong></div>
-      <div class="stat"><span>Projected</span><strong class="pts">{player.projected_points}</strong></div>
     </div>
     {#if weeklyData && weeklyData.length > 0}
       <div class="weekly-scroll-section">
@@ -243,7 +270,9 @@
   .stats {
     display: flex;
     gap: 1.5rem;
-    margin-bottom: 1.5rem;
+    padding-left: 1.5rem;
+    border-left: 1px solid #374151;
+    margin-left: 0.5rem;
   }
 
   .stat {
@@ -355,6 +384,24 @@
     font-size: 0.65rem;
     color: #6b7280;
     margin-top: -0.4rem;
+  }
+
+  .player-face {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 1px solid #374151;
+    flex-shrink: 0;
+  }
+
+  .team-logo-inline {
+    width: 18px;
+    height: 18px;
+    object-fit: contain;
+    vertical-align: middle;
+    margin-left: 0.25rem;
+    margin-right: 0.1rem;
   }
 
   .pos-badge.QB  { background: #2d0a1e; color: #fc2b6d; }

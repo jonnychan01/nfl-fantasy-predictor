@@ -4,7 +4,8 @@ from data import load_all_data
 import numpy as np
 from predictor import confidence_blend, predict
 from ml_predictor import get_ml_predictor
-from defense_rankings import opponent_multiplier
+import os
+import json as jsonlib
 
 app = FastAPI()
 
@@ -132,9 +133,8 @@ def get_weekly_projection(player_id: str, opponent: str = None):
         return {"error": "Player not found"}
     
     base_weekly = round(player["projected_points"] / 17, 1)
-    
+
     if opponent:
-        opp_mult = opponent_multiplier(opponent.upper())
         adjusted = round(base_weekly * opp_mult, 1)
     else:
         adjusted = base_weekly
@@ -149,5 +149,14 @@ def get_weekly_projection(player_id: str, opponent: str = None):
         "adjusted_projection": adjusted,
     }
 
+@app.get("/api/schedule/{team}")
+def get_team_schedule(team: str):
+    import json
+    path = f"cache/schedule_{team.upper()}.json"
+    if not os.path.exists(path):
+        return {"error": "Schedule not found"}
+    with open(path) as f:
+        schedule = json.load(f)
+    return schedule
 
-    
+

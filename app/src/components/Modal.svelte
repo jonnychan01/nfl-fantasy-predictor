@@ -104,13 +104,14 @@
     z-index: 100;
   }
 
-  .modal {
+ .modal {
     background: #111827;
     border: 1px solid #374151;
     border-radius: 12px;
     padding: 2rem;
     width: 95%;
     max-width: 1000px;
+    max-height: 90vh;
     overflow-y: auto;
   }
 
@@ -162,7 +163,7 @@
     margin-top: 0.2rem;
   }
 
-  .pts { color: #34d399 !important; }
+  .pts { color: #f9fafb !important; }
 
   .pos-badge {
     padding: 2px 8px;

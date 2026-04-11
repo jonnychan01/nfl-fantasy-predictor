@@ -1,150 +1,33 @@
 <script>
-  import { onMount, onDestroy } from 'svelte'
-  import { Chart } from 'chart.js/auto'
+  import { onMount } from 'svelte'
+  import OverviewTab from './tabs/OverviewTab.svelte'
+  import ScheduleTab from './tabs/ScheduleTab.svelte'
+  import HistoryTab from './tabs/HistoryTab.svelte'
+  import AnalysisTab from './tabs/AnalysisTab.svelte'
 
   export let player
   export let onClose
 
-  let canvas
-  let chart
-  let chartMode = 'ppg'
   let weeklyData = null
   let activeTab = 'overview'
-
-  const DEFENSE_RANKINGS = {
-  "SF": 17.2, "BAL": 18.1, "BUF": 18.4, "PHI": 18.9, "KC": 19.2,
-  "MIN": 19.8, "DET": 20.1, "GB": 20.4, "PIT": 20.7, "LAC": 21.0,
-  "HOU": 21.3, "WAS": 21.6, "CLE": 21.9, "SEA": 22.1, "DAL": 22.4,
-  "MIA": 22.7, "TB": 23.0, "ATL": 23.2, "LAR": 23.5, "DEN": 23.8,
-  "IND": 24.0, "CIN": 24.3, "NYJ": 24.6, "LV": 24.9, "JAX": 25.2,
-  "NE": 25.5, "NYG": 25.8, "ARI": 26.1, "CHI": 26.4, "NO": 26.7,
-  "CAR": 27.0, "TEN": 27.3
-  }
 
   const PLACEHOLDER = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='38' height='38' 
   viewBox='0 0 38 38'%3E%3Ccircle cx='19' cy='19' r='19' fill='%23ffffff'/%3E%3Ccircle cx='19' cy='15' r='7' 
   fill='%239ca3af'/%3E%3Cellipse cx='19' cy='32' rx='12' ry='8' fill='%239ca3af'/%3E%3C/svg%3E`
 
-  const LEAGUE_AVG = Object.values(DEFENSE_RANKINGS).reduce((a, b) => a + b, 0) / Object.keys(DEFENSE_RANKINGS).length
-
-  $: weeklyMultipliers = (() => {
-    if (!weeklyData) return []
-    const rawMults = weeklyData.map(w => DEFENSE_RANKINGS[w.opponent] ?? LEAGUE_AVG)
-    const scheduleAvg = rawMults.reduce((a, b) => a + b, 0) / rawMults.length
-    return rawMults.map(m => m / scheduleAvg)
-  })()
-
-  function toggleChart() {
-  chartMode = chartMode === 'ppg' ? 'total' : 'ppg'
-  updateChart()
-  }
-
-  function updateChart() {
-  const seasons = player.seasons
-  const historicalLabels = Object.keys(seasons).sort()
-
-  const historicalData = historicalLabels.map(k => 
-      chartMode === 'ppg' 
-      ? (seasons[k].ppg ?? 0) 
-      : (seasons[k].pts_ppr ?? 0)
-  )
-
-  const projectedValue = chartMode === 'ppg' 
-      ? player.projected_points / 17 
-      : player.projected_points
-
-  chart.data.datasets[0].data = [...historicalData, null]
-  chart.data.datasets[1].data = [...historicalData.map(() => null), projectedValue]
-  chart.data.datasets[2].data = [
-      ...historicalData.map((_, i) => i === historicalData.length - 1 ? historicalData[historicalData.length - 1] : null),
-      projectedValue
-  ]
-  chart.update()
-  }
-
-
-  onMount(async() => {
-    const seasons = player.seasons
-    const historicalLabels = Object.keys(seasons).sort()
-    const historicalData = historicalLabels.map(k => seasons[k].ppg ?? 0)
-
-    const labels = [...historicalLabels, '2026']
-    const lastPpg = historicalData[historicalData.length - 1]
-    const projectedPpg = player.projected_points / 17
-
-    chart = new Chart(canvas, {
-        type: 'line',
-        data: {
-        labels,
-        datasets: [
-            {
-            label: 'PPG',
-            data: [...historicalData, null],
-            borderColor: '#3b82f6',
-            backgroundColor: 'rgba(59, 130, 246, 0.1)',
-            borderWidth: 2,
-            pointBackgroundColor: '#3b82f6',
-            pointRadius: 5,
-            tension: 0.3,
-            fill: true,
-            },
-            {
-            label: 'Projected 2026',
-            data: [...historicalData.map(() => null), projectedPpg],
-            borderColor: '#34d399',
-            backgroundColor: 'rgba(52, 211, 153, 0.1)',
-            borderWidth: 2,
-            borderDash: [5, 5],
-            pointBackgroundColor: '#34d399',
-            pointRadius: 5,
-            pointBorderColor: '#34d399',
-            tension: 0.3,
-            fill: false,
-            },
-            {
-            label: 'Projection line',
-            data: [...historicalData.map((_, i) => i === historicalData.length - 1 ? lastPpg : null), projectedPpg],
-            borderColor: '#34d399',
-            borderWidth: 1,
-            borderDash: [5, 5],
-            pointRadius: 0,
-            tension: 0,
-            fill: false,
-            }
-        ]
-        },
-        options: {
-        responsive: true,
-        plugins: {
-            legend: {
-            display: true,
-            labels: {
-                color: '#9ca3af',
-                filter: (item) => item.text !== 'Projection line'
-            }
-            },
-        },
-        scales: {
-            x: { ticks: { color: '#9ca3af' }, grid: { color: '#1f2937' } },
-            y: { min: 0, ticks: { color: '#9ca3af' }, grid: { color: '#1f2937' } },
-        }
-        }
-        
-    })
-        const res = await fetch(`http://localhost:8000/api/schedule/${player.team}`)
-        weeklyData = await res.json()
-    })
-
-  onDestroy(() => chart?.destroy())
+  onMount(async () => {
+    const res = await fetch(`http://localhost:8000/api/schedule/${player.team}`)
+    weeklyData = await res.json()
+  })
 </script>
 
-<div class="overlay" 
+<div class="overlay"
   on:click={onClose}
   on:keydown={(e) => e.key === 'Escape' && onClose()}
   role="button"
   tabindex="0"
 >
-  <div class="modal" 
+  <div class="modal"
     on:click|stopPropagation
     on:keydown|stopPropagation
     role="dialog"
@@ -189,47 +72,22 @@
 
     <div class="tab-bar">
       <button class:active={activeTab === 'overview'} on:click={() => activeTab = 'overview'}>Overview</button>
-      <button class:active={activeTab === 'splits'} on:click={() => activeTab = 'splits'}>Splits</button>
+      <button class:active={activeTab === 'schedule'} on:click={() => activeTab = 'schedule'}>Schedule</button>
+      <button class:active={activeTab === 'history'} on:click={() => activeTab = 'history'}>History</button>
+      <button class:active={activeTab === 'analysis'} on:click={() => activeTab = 'analysis'}>Analysis</button>
     </div>
 
     <div style={activeTab === 'overview' ? '' : 'display: none'}>
-      {#if weeklyData && weeklyData.length > 0}
-        <div class="weekly-scroll-section">
-          <h3>2026 Schedule Projections <span class="placeholder-tag">placeholder</span></h3>
-          <div class="weekly-scroll">
-            {#each weeklyData as week, i}
-              <div class="week-card">
-                <span class="week-num">Wk {week.week}</span>
-                <img 
-                  class="week-logo"
-                  src={`https://sleepercdn.com/images/team_logos/nfl/${week.opponent?.toLowerCase()}.png`}
-                  alt={week.opponent}
-                  title={week.home ? week.opponent : `@${week.opponent}`}
-                />
-                <span class="week-away" style={week.home ? 'visibility: hidden' : ''}>@</span>
-                <span class="week-pts pts">{(player.projected_points / 17 * weeklyMultipliers[i]).toFixed(1)}</span>
-              </div>
-            {/each}
-          </div>
-        </div>
-      {/if}
-      <div class="chart-toggle">
-        <button 
-          class:active={chartMode === 'ppg'} 
-          on:click={() => { chartMode = 'ppg'; updateChart() }}
-        >PPG</button>
-        <button 
-          class:active={chartMode === 'total'} 
-          on:click={() => { chartMode = 'total'; updateChart() }}
-        >Total Pts</button>
-      </div>
-      <canvas bind:this={canvas}></canvas>
+        <OverviewTab />
     </div>
-
-    <div style={activeTab === 'splits' ? '' : 'display: none'}>
-      <div class="empty-tab">
-        <p>Coming soon</p>
-      </div>
+    <div style={activeTab === 'schedule' ? '' : 'display: none'}>
+      <ScheduleTab {player} {weeklyData} />
+    </div>
+    <div style={activeTab === 'history' ? '' : 'display: none'}>
+      <HistoryTab {player} />
+    </div>
+    <div style={activeTab === 'analysis' ? '' : 'display: none'}>
+        <AnalysisTab />
     </div>
 
   </div>
@@ -313,113 +171,6 @@
     font-weight: 700;
   }
 
-  .chart-toggle {
-    display: flex;
-    gap: 0.5rem;
-    margin-bottom: 1rem;
-  } 
-
-  .chart-toggle button {
-    padding: 0.3rem 0.8rem;
-    border: 1px solid #374151;
-    background: #1f2937;
-    color: #9ca3af;
-    border-radius: 999px;
-    cursor: pointer;
-    font-size: 0.8rem;
-    transition: all 0.2s;
-  }
-
-  .chart-toggle button.active {
-    background: #3b82f6;
-    border-color: #3b82f6;
-    color: white;
-  }
-
-  .weekly-scroll-section {
-    margin-bottom: 1.5rem;
-  }
-
-.weekly-scroll-section h3 {
-    color: #9ca3af;
-    font-size: 0.85rem;
-    margin-bottom: 0.75rem;
-  }
-
-  .placeholder-tag {
-    font-size: 0.7rem;
-    background: #374151;
-    color: #6b7280;
-    padding: 1px 6px;
-    border-radius: 4px;
-    margin-left: 0.5rem;
-  }
-
-  .weekly-scroll {
-    display: flex;
-    gap: 0.5rem;
-    overflow-x: auto;
-    padding-bottom: 0.5rem;
-  }
-
-  .week-card {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 0.3rem;
-    background: #1f2937;
-    border: 1px solid #374151;
-    border-radius: 8px;
-    padding: 0.6rem 0.8rem;
-    min-width: 70px;
-    flex-shrink: 0;
-  }
-
-  .week-num {
-    font-size: 0.7rem;
-    color: #6b7280;
-  }
-
-  .week-opp {
-    font-size: 0.8rem;
-    color: #f9fafb;
-    font-weight: 600;
-  }
-
-  .week-pts {
-    font-size: 0.85rem;
-  }
-
-  .week-logo {
-    width: 40px;
-    height: 40px;
-    object-fit: contain;
-  }
-
-  .week-away {
-    font-size: 0.65rem;
-    color: #6b7280;
-    margin-top: -0.4rem;
-  }
-
-  .player-face {
-    width: 80px;
-    height: 80px;
-    border-radius: 50%;
-    object-fit: cover;
-    border: 1px solid #374151;
-    flex-shrink: 0;
-  }
-
-  .team-logo-inline {
-    width: 18px;
-    height: 18px;
-    object-fit: contain;
-    vertical-align: middle;
-    margin-left: 0.25rem;
-    margin-right: 0.1rem;
-  }
-
   .tab-bar {
     display: flex;
     gap: 0;
@@ -444,13 +195,22 @@
     border-bottom-color: #3b82f6;
   }
 
-  .empty-tab {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height: 200px;
-    color: #6b7280;
-    font-size: 0.9rem;
+  .player-face {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 1px solid #374151;
+    flex-shrink: 0;
+  }
+
+  .team-logo-inline {
+    width: 18px;
+    height: 18px;
+    object-fit: contain;
+    vertical-align: middle;
+    margin-left: 0.25rem;
+    margin-right: 0.1rem;
   }
 
   .pos-badge.QB  { background: #2d0a1e; color: #fc2b6d; }

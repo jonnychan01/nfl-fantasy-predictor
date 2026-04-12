@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from data import load_all_data
 import numpy as np
-from predictor import confidence_blend, predict
+from predictor import predict
 from ml_predictor import get_ml_predictor
 import os
 import json as jsonlib
@@ -50,21 +50,21 @@ def get_players():
                     ml_weight = 0.2  
                     rule_weight = 0.8
                 else:
-                    ml_weight = 0.8
-                    rule_weight = 0.2
+                    ml_weight = 0.5
+                    rule_weight = 0.5
             elif player.get("position") == "QB":
                 if age <=24 and num_seasons <= 2:
                     ml_weight = 0.9 # way better cuz samples for young qb are very high compared to other positions 
                     rule_weight = 0.1
                 else:
-                    ml_weight = 0.1
+                    ml_weight = 0.
                     rule_weight = 1 - ml_weight
-            elif player.get("position") in ("K", "DEF", "TE"):
+            elif player.get("position") in ("K", "DEF"):
                 ml_weight = 0.1
                 rule_weight = 0.9
             else:
-                ml_weight = 0.3
-                rule_weight = 0.7
+                ml_weight = 0.1
+                rule_weight = 0.9
 
             combined = round((raw_score * rule_weight) + (ml_score * ml_weight), 1)
 
@@ -79,25 +79,6 @@ def get_players():
                 "num_seasons": num_seasons,
                 "seasons": player["seasons"],
             })
-
-        for position in ["QB", "RB", "WR", "TE", "K", "DEF"]:
-            pos_players = [p for p in players_cache if p["position"] == position]
-
-            if not pos_players:
-                continue
-            top_scores = sorted([p["projected_points"] for p in pos_players], reverse=True)[:20]
-            pos_avg = round(np.mean(top_scores), 1)
-
-            for p in pos_players:
-                if p["projected_points"] < 60:
-                    continue
-                if p["age"] and p["age"] <= 24 and p["num_seasons"] <= 2:
-                    continue  # don't blend young breakout players
-                p["projected_points"] = confidence_blend(
-                    p["projected_points"],
-                    pos_avg,
-                    p["num_seasons"]
-                )
 
         players_cache.sort(key=lambda x: x["projected_points"], reverse=True)
 

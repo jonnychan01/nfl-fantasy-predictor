@@ -9,6 +9,30 @@ POSITIONS = ["QB", "RB", "WR", "TE", "K", "DEF"]
 POSITION_ENCODING = {pos: i for i, pos in enumerate(POSITIONS)}
 POSITION_PEAK_AGE = {"QB": 29, "RB": 24, "WR": 28, "TE": 28, "K": 33}
 
+def target_spike_flag(seasons: dict, season_key: str) -> float:
+    season_keys = sorted(seasons.keys())
+    idx = season_keys.index(season_key)
+    if idx == 0:
+        return 0.0
+
+    prev = seasons[season_keys[idx - 1]]
+    curr = seasons[season_key]
+
+    prev_targets = prev.get("rec_targets", 0)
+    curr_targets = curr.get("rec_targets", 0)
+    prev_snap = prev.get("snap_percentage", 0)
+    curr_snap = curr.get("snap_percentage", 0)
+
+    if prev_targets == 0:
+        return 0.0
+
+    target_jump = (curr_targets - prev_targets) / (prev_targets + 1e-6)
+    snap_jump = (curr_snap - prev_snap) / (prev_snap + 1e-6) if prev_snap > 0 else 0
+
+    if target_jump > 0.25 and snap_jump < target_jump * 0.5:
+        return min(target_jump - snap_jump, 1.0)
+    return 0.0
+
 def build_training_data(all_players: dict):
     X, y, meta = [], [], []
 
@@ -65,6 +89,7 @@ def build_training_data(all_players: dict):
                 years_exp,
                 pos_encoded,
                 i / max(len(season_keys) - 1, 1),  
+                target_spike_flag(seasons, current_key),
             ]
 
             X.append(features)
@@ -115,6 +140,7 @@ def build_prediction_features(player: dict) -> np.ndarray:
         years_exp,
         pos_encoded,
         min(len(season_keys) / 6, 1.0),
+        target_spike_flag(seasons, last_key),
     ]
 
     return np.array(features).reshape(1, -1)
@@ -174,8 +200,14 @@ class NFLPredictor:
 
         seasons = player.get("seasons", {})
         season_keys = sorted(seasons.keys())
-        last_gp = seasons[season_keys[-1]].get("games_played", 17) if season_keys else 17
-        projected_games = min(17, max(last_gp, 14))
+        last_season = seasons[season_keys[-1]] if season_keys else {}
+        last_gp = last_season.get("games_played", 17)
+        last_snap = last_season.get("snap_percentage", 0)
+
+        if last_gp < 14 and last_snap > 0.6:
+            projected_games = 16
+        else:
+            projected_games = min(17, max(last_gp, 14))
 
         return round(max(ppg_pred * projected_games, 0), 1)
 

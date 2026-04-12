@@ -53,7 +53,7 @@
             const all = weeklyMultipliers.map(m2 => player.projected_points / 17 * m2)
             if (pts >= Math.max(...all) * 0.9) return 'rgba(52, 211, 153, 0.8)'
             if (pts <= Math.min(...all) * 1.1) return 'rgba(248, 113, 113, 0.8)'
-            return 'rgba(59, 130, 246, 0.8)'
+            return 'rgba(250, 204, 21, 0.8)'
           }),
           borderRadius: 4,
         }]

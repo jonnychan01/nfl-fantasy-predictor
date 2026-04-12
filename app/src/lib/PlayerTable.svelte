@@ -1,5 +1,5 @@
 <script>
-  import Modal from '../components/Modal.svelte'
+  import Modal from '../modal/Modal.svelte'
 
   export let players = []
 

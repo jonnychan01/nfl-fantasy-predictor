@@ -78,7 +78,7 @@
     </div>
 
     <div style={activeTab === 'overview' ? '' : 'display: none'}>
-        <OverviewTab />
+      <OverviewTab/>
     </div>
     <div style={activeTab === 'schedule' ? '' : 'display: none'}>
       <ScheduleTab {player} {weeklyData} />
@@ -87,7 +87,7 @@
       <HistoryTab {player} />
     </div>
     <div style={activeTab === 'analysis' ? '' : 'display: none'}>
-        <AnalysisTab />
+        <AnalysisTab/>
     </div>
 
   </div>

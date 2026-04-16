@@ -186,7 +186,7 @@
   }
 
   tr:hover td {
-    background: #1f2937;
+    background: #ebebeb;
   }
 
   .pts {

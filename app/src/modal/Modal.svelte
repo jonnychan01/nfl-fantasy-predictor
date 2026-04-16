@@ -16,8 +16,13 @@
   fill='%239ca3af'/%3E%3Cellipse cx='19' cy='32' rx='12' ry='8' fill='%239ca3af'/%3E%3C/svg%3E`
 
   onMount(async () => {
-    const res = await fetch(`http://localhost:8000/api/schedule/${player.team}`)
-    weeklyData = await res.json()
+    try {
+      const res = await fetch(`http://localhost:8000/api/schedule/${player.team}`)
+      weeklyData = await res.json()
+    } catch (e) {
+      console.error('Failed to fetch schedule:', e)
+      weeklyData = []   
+    }
   })
 </script>
 
@@ -78,7 +83,7 @@
     </div>
 
     <div style={activeTab === 'overview' ? '' : 'display: none'}>
-      <OverviewTab/>
+      <OverviewTab {player} {weeklyData} />
     </div>
     <div style={activeTab === 'schedule' ? '' : 'display: none'}>
       <ScheduleTab {player} {weeklyData} />

@@ -64,13 +64,30 @@ def loaded_stats(season:int) -> dict:
             "pass_touchdowns": stat.get('pass_td', 0) or 0,
             "pass_interceptions": stat.get('pass_int', 0) or 0,
             "fumbles": stat.get('fum_lost', 0) or 0,
+            "rec_rz_tgt": stat.get('rec_rz_tgt', 0) or 0,
         }
     return stats
-         
+
+def load_team_stats(season: str) -> dict:
+    path = os.path.join(CACHE_DIR, f"stats_{season}.json")
+    with open(path, 'r') as f:
+        raw = json.load(f)
+    
+    team_stats = {}
+    for key, data in raw.items():
+        if key.startswith("TEAM_"):
+            team = key.replace("TEAM_", "")
+            team_stats[team] = {
+                "team_rec_tgt": data.get("rec_tgt", 0),
+                "team_rz_tgt": data.get("rec_rz_tgt", 0),
+                "team_pass_att": data.get("pass_att", 0),
+            }
+    return team_stats
 
 def load_all_data(require_team=False) -> dict:
-    players = loaded_players(require_team=require_team)  
+    players = loaded_players(require_team=require_team)
     all_season_stats = {season: loaded_stats(season) for season in SEASONS}
+    all_team_stats = {season: load_team_stats(season) for season in SEASONS}
 
     for player_id, player in players.items():
         player['seasons'] = {}
@@ -81,11 +98,28 @@ def load_all_data(require_team=False) -> dict:
                 break
         for season, stats in all_season_stats.items():
             if player_id in stats:
-                player['seasons'][season] = stats[player_id]
+                team = player.get("team")
+                team_data = all_team_stats[season].get(team, {})
+                season_data = stats[player_id].copy()
+
+                # Target share
+                team_tgt = team_data.get("team_rec_tgt", 0)
+                player_tgt = season_data.get("rec_targets", 0)
+                season_data["target_share"] = round(player_tgt / team_tgt, 3) if team_tgt > 0 else 0
+
+                # Red zone target share
+                team_rz = team_data.get("team_rz_tgt", 0)
+                player_rz = stats[player_id].get("rec_rz_tgt", 0) if "rec_rz_tgt" in stats[player_id] else 0
+                season_data["rz_target_share"] = round(player_rz / team_rz, 3) if team_rz > 0 else 0
+
+                player['seasons'][season] = season_data
             elif first_season and season > first_season:
-                player['seasons'][season] = {"games_played": 0, "ppg": 0, "snap_percentage": 0}
+                player['seasons'][season] = {"games_played": 0, "ppg": 0, "snap_percentage": 0,
+                                             "target_share": 0, "rz_target_share": 0}
 
     return {pid: p for pid, p in players.items() if p["seasons"]}
+
+
    
    
 

@@ -17,13 +17,14 @@ app.add_middleware(
 )
 
 players_cache = None
+_ml = None
 
 def get_players():
     global players_cache
 
     if players_cache is None:
-        training_data = load_all_data(require_team=False) 
-        ml = get_ml_predictor(training_data)
+        training_data = load_all_data(require_team=False)
+        ml = get_ml_predictor(training_data, force_retrain=True)
 
         active_players = load_all_data(require_team=True)  
         players_cache = []
@@ -51,7 +52,8 @@ def get_players():
                     rule_weight = 0.2
             elif player.get("position") == "WR":
                 last_season = sorted(player["seasons"].items())[-1][1]
-                prev_seasons = sorted(player["seasons"].items())
+                last_gp = last_season.get("games_played", 17)
+                last_ppg = last_season.get("ppg", 0)
                 
                 if num_seasons <= 2:
                     ml_weight = 0.1
@@ -59,14 +61,15 @@ def get_players():
                 elif age <= 24:
                     ml_weight = 0.2
                     rule_weight = 0.8
+                elif last_gp < 12:
+                    ml_weight = 0.2
+                    rule_weight = 0.8
+                elif last_ppg > 12 and last_season.get("target_share", 0) > 0.15:
+                    ml_weight = 0.25
+                    rule_weight = 0.75
                 else:
-                    last_gp = last_season.get("games_played", 17)
-                    if last_gp < 12:
-                        ml_weight = 0.2
-                        rule_weight = 0.8
-                    else:
-                        ml_weight = 0.5
-                        rule_weight = 0.5
+                    ml_weight = 0.5
+                    rule_weight = 0.5
             elif player.get("position") == "QB":
                 if age <=24 and num_seasons <= 2:
                     ml_weight = 0.9 # way better cuz samples for young qb are very high compared to other positions 

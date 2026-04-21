@@ -10,6 +10,13 @@ POSITIONS = ["QB", "RB", "WR", "TE", "K", "DEF"]
 POSITION_ENCODING = {pos: i for i, pos in enumerate(POSITIONS)}
 POSITION_PEAK_AGE = {"QB": 29, "RB": 24, "WR": 28, "TE": 28, "K": 33}
 
+FEATURE_NAMES = [
+    "ppg", "snap_pct", "games_played", "pts_ppr", "rush_yards", "rush_td",
+    "rec", "rec_yards", "rec_targets", "rec_td", "pass_yards", "pass_td",
+    "pass_int", "fumbles", "age", "age_sq", "years_past_peak", "years_exp",
+    "pos_encoded", "career_stage", "target_spike", "target_share", "rz_target_share"
+]
+
 def target_spike_flag(seasons: dict, season_key: str) -> float:
     season_keys = sorted(seasons.keys())
     idx = season_keys.index(season_key)
@@ -36,8 +43,12 @@ def target_spike_flag(seasons: dict, season_key: str) -> float:
 
 def build_training_data(all_players: dict):
     X, y, meta = [], [], []
+    FANTASY_POSITIONS = {'QB', 'RB', 'WR', 'TE', 'K', 'DEF'}
 
     for pid, player in all_players.items():
+        if player.get('position') not in FANTASY_POSITIONS:
+            continue
+        
         seasons = player.get("seasons", {})
         season_keys = sorted(seasons.keys())
 
@@ -85,12 +96,14 @@ def build_training_data(all_players: dict):
                 current.get("pass_interceptions", 0) / 17,
                 current.get("fumbles", 0) / 17,
                 age_at_season,
-                age_at_season ** 2,                         
+                age_at_season ** 2,
                 max(0, age_at_season - POSITION_PEAK_AGE.get(position, 28)),
                 years_exp,
                 pos_encoded,
-                i / max(len(season_keys) - 1, 1),  
+                i / max(len(season_keys) - 1, 1),
                 target_spike_flag(seasons, current_key),
+                current.get("target_share", 0),
+                current.get("rz_target_share", 0),
             ]
 
             X.append(features)
@@ -121,28 +134,30 @@ def build_prediction_features(player: dict) -> np.ndarray:
     years_exp = player.get("years_experience", 0) or 0
 
     features = [
-        last.get("ppg", 0),
-        last.get("snap_percentage", 0),
-        last.get("games_played", 0) / 17,
-        last.get("pts_ppr", 0) / 17,
-        last.get("rush_yards", 0) / 17,
-        last.get("rush_touchdowns", 0) / 17,
-        last.get("rec", 0) / 17,
-        last.get("rec_yards", 0) / 17,
-        last.get("rec_targets", 0) / 17,
-        last.get("rec_touchdowns", 0) / 17,
-        last.get("pass_yards", 0) / 17,
-        last.get("pass_touchdowns", 0) / 17,
-        last.get("pass_interceptions", 0) / 17,
-        last.get("fumbles", 0) / 17,
-        age,
-        age ** 2,
-        max(0, age - POSITION_PEAK_AGE.get(position, 28)),
-        years_exp,
-        pos_encoded,
-        min(len(season_keys) / 6, 1.0),
-        target_spike_flag(seasons, last_key),
-    ]
+    last.get("ppg", 0),
+    last.get("snap_percentage", 0),
+    last.get("games_played", 0) / 17,
+    last.get("pts_ppr", 0) / 17,
+    last.get("rush_yards", 0) / 17,
+    last.get("rush_touchdowns", 0) / 17,
+    last.get("rec", 0) / 17,
+    last.get("rec_yards", 0) / 17,
+    last.get("rec_targets", 0) / 17,
+    last.get("rec_touchdowns", 0) / 17,
+    last.get("pass_yards", 0) / 17,
+    last.get("pass_touchdowns", 0) / 17,
+    last.get("pass_interceptions", 0) / 17,
+    last.get("fumbles", 0) / 17,
+    age,
+    age ** 2,
+    max(0, age - POSITION_PEAK_AGE.get(position, 28)),
+    years_exp,
+    pos_encoded,
+    min(len(season_keys) / 6, 1.0),
+    target_spike_flag(seasons, last_key),
+    last.get("target_share", 0),
+    last.get("rz_target_share", 0),
+]
 
     return np.array(features).reshape(1, -1)
 
@@ -151,7 +166,6 @@ class NFLPredictor:
     def __init__(self):
         self.models = {}
         self.trained = False
-        # No more scalers — LightGBM doesn't need feature scaling
 
     def train(self, all_players: dict):
         X, y, meta = build_training_data(all_players)
@@ -161,7 +175,8 @@ class NFLPredictor:
 
         for position in POSITIONS:
             pos_encoded = POSITION_ENCODING[position]
-            mask = X[:, 18] == pos_encoded  # col 18 is pos_encoded in your features
+            pos_col = FEATURE_NAMES.index("pos_encoded")
+            mask = X[:, pos_col] == pos_encoded
             X_pos = X[mask]
             y_pos = y[mask]
 
@@ -222,9 +237,9 @@ class NFLPredictor:
 
 _predictor = None
 
-def get_ml_predictor(all_players: dict) -> NFLPredictor:
+def get_ml_predictor(all_players: dict, force_retrain: bool = False) -> NFLPredictor:
     global _predictor
-    if _predictor is None:
+    if _predictor is None or force_retrain:
         _predictor = NFLPredictor()
         _predictor.train(all_players)
     return _predictor

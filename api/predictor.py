@@ -182,31 +182,6 @@ def weighted_ppg(seasons: dict) -> float:
         return 0.0
     
     return round(np.average(values, weights=weights), 3)
-    
-    values, weights = [], []
-    for key in season_keys:
-        season = seasons[key]
-        ppg = season.get("ppg", 0)
-        games_played = season.get("games_played", 0)
-        if ppg == 0:
-            continue
-        severity = injury_severity(season)
-        if key == season_keys[-1]:
-            weight = 3
-        elif key in RECENT_SEASONS:
-            weight = 2
-        else:
-            weight = 1
-        if severity > 0:
-            weight *= (1 - severity * 0.7) * recovery_factor(seasons, key)
-        values.append(ppg)
-        weights.append(weight * min(games_played / 17, 1.0))
-
-    if not values:
-        return 0.0
-    
-    return round(np.average(values, weights=weights), 3)
-
 
 def role_stability(snap_percentages: dict, position: str) -> float:
     if position in ("K", "DEF"):

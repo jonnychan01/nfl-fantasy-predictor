@@ -1,7 +1,8 @@
 import numpy as np
+import lightgbm as lgb
 from sklearn.linear_model import Ridge
 from sklearn.preprocessing import StandardScaler
-from sklearn.model_selection import cross_val_score
+from sklearn.model_selection import cross_val_score, KFold
 import warnings
 warnings.filterwarnings('ignore')
 
@@ -148,9 +149,9 @@ def build_prediction_features(player: dict) -> np.ndarray:
 
 class NFLPredictor:
     def __init__(self):
-        self.models = {}   
-        self.scalers = {}  
+        self.models = {}
         self.trained = False
+        # No more scalers — LightGBM doesn't need feature scaling
 
     def train(self, all_players: dict):
         X, y, meta = build_training_data(all_players)
@@ -160,7 +161,7 @@ class NFLPredictor:
 
         for position in POSITIONS:
             pos_encoded = POSITION_ENCODING[position]
-            mask = X[:, 16] == pos_encoded
+            mask = X[:, 18] == pos_encoded  # col 18 is pos_encoded in your features
             X_pos = X[mask]
             y_pos = y[mask]
 
@@ -168,17 +169,25 @@ class NFLPredictor:
                 print(f"{position}: not enough data ({len(X_pos)} samples), skipping")
                 continue
 
-            scaler = StandardScaler()
-            X_scaled = scaler.fit_transform(X_pos)
-            model = Ridge(alpha=1.0)
-            model.fit(X_scaled, y_pos)
-
-            self.scalers[position] = scaler
+            model = lgb.LGBMRegressor(
+                n_estimators=300,
+                learning_rate=0.05,
+                num_leaves=15,        
+                min_child_samples=3, 
+                subsample=0.8,
+                colsample_bytree=0.8,
+                reg_alpha=0.1,        
+                reg_lambda=1.0,       
+                random_state=42,
+                verbose=-1,
+            )
+            model.fit(X_pos, y_pos)
             self.models[position] = model
 
             if len(X_pos) >= 5:
                 cv = min(5, len(X_pos))
-                scores = cross_val_score(model, X_scaled, y_pos, cv=cv, scoring='r2')
+                kf = KFold(n_splits=cv, shuffle=True, random_state=42)
+                scores = cross_val_score(model, X_pos, y_pos, cv=kf, scoring='r2')
                 print(f"{position}: {len(X_pos)} samples | Mean R²: {scores.mean():.3f} (+/- {scores.std():.3f})")
 
         self.trained = True
@@ -195,8 +204,7 @@ class NFLPredictor:
         if features is None:
             return 0.0
 
-        features_scaled = self.scalers[position].transform(features)
-        ppg_pred = self.models[position].predict(features_scaled)[0]
+        ppg_pred = self.models[position].predict(features)[0]
 
         seasons = player.get("seasons", {})
         season_keys = sorted(seasons.keys())

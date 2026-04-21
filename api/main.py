@@ -22,36 +22,51 @@ def get_players():
     global players_cache
 
     if players_cache is None:
-        raw = load_all_data()
-        ml = get_ml_predictor(raw)
+        training_data = load_all_data(require_team=False) 
+        ml = get_ml_predictor(training_data)
+
+        active_players = load_all_data(require_team=True)  
         players_cache = []
 
-        for player_id, player in raw.items():
-            if not player.get("team"):
-                continue
-
+        for player_id, player in active_players.items():
             raw_score = predict(player)
             ml_score = ml.predict(player)
-
 
             num_seasons = len(player["seasons"])
 
             age = player.get("age", 25) or 25
 
             if player.get("position") == "RB":
-                if age <= 24 or num_seasons <= 2:
-                    ml_weight = 0.2  
+                last_season = max(player["seasons"].values(), key=lambda s: s.get("games_played", 0))
+                is_workhorse = last_season.get("snap_percentage", 0) > 0.7 and last_season.get("ppg", 0) > 18
+
+                if is_workhorse:
+                    ml_weight = 0.2
+                    rule_weight = 0.9
+                elif age <= 24 or num_seasons <= 2:
+                    ml_weight = 0.2
                     rule_weight = 0.8
                 else:
                     ml_weight = 0.8
                     rule_weight = 0.2
             elif player.get("position") == "WR":
-                if age <= 24 or num_seasons <= 2:
-                    ml_weight = 0.2  
+                last_season = sorted(player["seasons"].items())[-1][1]
+                prev_seasons = sorted(player["seasons"].items())
+                
+                if num_seasons <= 2:
+                    ml_weight = 0.1
+                    rule_weight = 0.9
+                elif age <= 24:
+                    ml_weight = 0.2
                     rule_weight = 0.8
                 else:
-                    ml_weight = 0.5
-                    rule_weight = 0.5
+                    last_gp = last_season.get("games_played", 17)
+                    if last_gp < 12:
+                        ml_weight = 0.2
+                        rule_weight = 0.8
+                    else:
+                        ml_weight = 0.5
+                        rule_weight = 0.5
             elif player.get("position") == "QB":
                 if age <=24 and num_seasons <= 2:
                     ml_weight = 0.9 # way better cuz samples for young qb are very high compared to other positions 

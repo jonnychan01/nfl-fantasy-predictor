@@ -20,16 +20,16 @@ def improvement_multiplier(seasons: dict) -> float:
     season_keys = sorted(seasons.keys())
     ppg_values = [seasons[k].get("ppg", 0) for k in season_keys if seasons[k].get("ppg", 0) > 0]
 
-    if len(ppg_values) < 2:
-        return 1.0
-    
+    if len(ppg_values) < 3:
+        return 1.0  
+
     improvements = sum(1 for i in range(1, len(ppg_values)) if ppg_values[i] > ppg_values[i-1])
     improvement_rate = improvements / (len(ppg_values) - 1)
 
     if improvement_rate == 1.0:
-        return 1.10
+        return 1.06 
     elif improvement_rate >= 0.67:
-        return 1.05
+        return 1.03  
     
     return 1.0
 
@@ -157,6 +157,31 @@ def weighted_ppg(seasons: dict) -> float:
 
     if not season_keys:
         return 0.0
+    
+    values, weights = [], []
+    for key in season_keys:
+        season = seasons[key]
+        ppg = season.get("ppg", 0)
+        games_played = season.get("games_played", 0)
+        if ppg == 0:
+            continue
+        severity = injury_severity(season)
+        if key == season_keys[-1]:
+            weight = 3 * min(games_played / 12, 1.0)
+            weight = max(weight, 0.5)  
+        elif key in RECENT_SEASONS:
+            weight = 2
+        else:
+            weight = 1
+        if severity > 0:
+            weight *= (1 - severity * 0.7) * recovery_factor(seasons, key)
+        values.append(ppg)
+        weights.append(weight * min(games_played / 17, 1.0))
+
+    if not values:
+        return 0.0
+    
+    return round(np.average(values, weights=weights), 3)
     
     values, weights = [], []
     for key in season_keys:

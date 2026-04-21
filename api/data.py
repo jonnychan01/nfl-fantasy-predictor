@@ -5,7 +5,7 @@ CACHE_DIR = 'cache'
 SEASONS = ['2020', '2021', '2022', '2023', '2024', '2025']
 POSITIONS = ['QB', 'RB', 'WR', 'TE', 'K', 'DEF']
 
-def loaded_players() -> dict:
+def loaded_players(require_team=False) -> dict:
     with open(os.path.join(CACHE_DIR, 'players.json'), 'r') as f:
         raw_data = json.load(f)
 
@@ -13,15 +13,18 @@ def loaded_players() -> dict:
     for player_id, player in raw_data.items():
         if player.get('position') not in POSITIONS:
             continue
-        if not player.get('team'):
+        if require_team and not player.get('team'):  
             continue
+        if not player.get('full_name') and player.get('position') != 'DEF':
+            continue
+
         if player.get('position') == 'DEF':
             full_name = f"{player.get('first_name', '')} {player.get('last_name', '')}".strip()
         else:
             full_name = player.get('full_name')
         if not full_name:
             continue
-        
+
         players[player_id] = {
             'player_id': player_id,
             'name': full_name,
@@ -65,10 +68,10 @@ def loaded_stats(season:int) -> dict:
     return stats
          
 
-def load_all_data() -> dict:
-    players = loaded_players()
+def load_all_data(require_team=False) -> dict:
+    players = loaded_players(require_team=require_team)  
     all_season_stats = {season: loaded_stats(season) for season in SEASONS}
-    
+
     for player_id, player in players.items():
         player['seasons'] = {}
         first_season = None
@@ -81,7 +84,7 @@ def load_all_data() -> dict:
                 player['seasons'][season] = stats[player_id]
             elif first_season and season > first_season:
                 player['seasons'][season] = {"games_played": 0, "ppg": 0, "snap_percentage": 0}
-    
+
     return {pid: p for pid, p in players.items() if p["seasons"]}
    
    

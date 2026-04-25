@@ -1,3 +1,4 @@
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from data import load_all_data
@@ -5,9 +6,93 @@ import numpy as np
 from predictor import predict
 from ml_predictor import get_ml_predictor
 import os
-import json as jsonlib
+import json
 
-app = FastAPI()
+players_cache = None
+_ml = None
+
+
+def build_players_cache():
+    global players_cache, _ml
+
+    training_data = load_all_data(require_team=False)
+    _ml = get_ml_predictor(training_data, force_retrain=True)
+
+    active_players = load_all_data(require_team=True)
+    players_cache = []
+
+    for player_id, player in active_players.items():
+        raw_score = predict(player)
+        ml_score = _ml.predict(player)
+
+        num_seasons = len(player["seasons"])
+        age = player.get("age", 25) or 25
+        position = player.get("position")
+
+        if position == "RB":
+            last_season = max(player["seasons"].values(), key=lambda s: s.get("games_played", 0))
+            is_workhorse = last_season.get("snap_percentage", 0) > 0.7 and last_season.get("ppg", 0) > 18
+            if is_workhorse:
+                ml_weight, rule_weight = 0.2, 0.9
+            elif age <= 24 or num_seasons <= 2:
+                ml_weight, rule_weight = 0.2, 0.8
+            else:
+                ml_weight, rule_weight = 0.8, 0.2
+
+        elif position == "WR":
+            last_season = sorted(player["seasons"].items())[-1][1]
+            last_gp = last_season.get("games_played", 17)
+            last_ppg = last_season.get("ppg", 0)
+            if num_seasons <= 2:
+                ml_weight, rule_weight = 0.1, 0.9
+            elif age <= 24:
+                ml_weight, rule_weight = 0.2, 0.8
+            elif last_gp < 12:
+                ml_weight, rule_weight = 0.2, 0.8
+            elif last_ppg > 12 and last_season.get("target_share", 0) > 0.15:
+                ml_weight, rule_weight = 0.25, 0.75
+            else:
+                ml_weight, rule_weight = 0.5, 0.5
+
+        elif position == "QB":
+            if age <= 24 and num_seasons <= 2:
+                ml_weight, rule_weight = 0.9, 0.1
+            else:
+                ml_weight, rule_weight = 0.3, 0.7
+
+        elif position in ("K", "DEF"):
+            ml_weight, rule_weight = 0.0, 1.0
+
+        else:
+            ml_weight, rule_weight = 0.1, 0.9
+
+        combined = round((raw_score * rule_weight) + (ml_score * ml_weight), 1)
+
+        players_cache.append({
+            "player_id": player_id,
+            "name": player["name"],
+            "position": player["position"],
+            "team": player["team"],
+            "age": player["age"],
+            "years_experience": player["years_experience"],
+            "projected_points": combined,
+            "num_seasons": num_seasons,
+            "seasons": player["seasons"],
+        })
+
+    players_cache.sort(key=lambda x: x["projected_points"], reverse=True)
+    print(f"Cache built — {len(players_cache)} players loaded")
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    print("Building player cache at startup...")
+    build_players_cache()
+    yield
+    print("Server shutting down")
+
+
+app = FastAPI(lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -16,100 +101,18 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-players_cache = None
-_ml = None
 
 def get_players():
-    global players_cache
-
-    if players_cache is None:
-        training_data = load_all_data(require_team=False)
-        ml = get_ml_predictor(training_data, force_retrain=True)
-
-        active_players = load_all_data(require_team=True)  
-        players_cache = []
-
-        for player_id, player in active_players.items():
-            raw_score = predict(player)
-            ml_score = ml.predict(player)
-
-            num_seasons = len(player["seasons"])
-
-            age = player.get("age", 25) or 25
-
-            if player.get("position") == "RB":
-                last_season = max(player["seasons"].values(), key=lambda s: s.get("games_played", 0))
-                is_workhorse = last_season.get("snap_percentage", 0) > 0.7 and last_season.get("ppg", 0) > 18
-
-                if is_workhorse:
-                    ml_weight = 0.2
-                    rule_weight = 0.9
-                elif age <= 24 or num_seasons <= 2:
-                    ml_weight = 0.2
-                    rule_weight = 0.8
-                else:
-                    ml_weight = 0.8
-                    rule_weight = 0.2
-            elif player.get("position") == "WR":
-                last_season = sorted(player["seasons"].items())[-1][1]
-                last_gp = last_season.get("games_played", 17)
-                last_ppg = last_season.get("ppg", 0)
-                
-                if num_seasons <= 2:
-                    ml_weight = 0.1
-                    rule_weight = 0.9
-                elif age <= 24:
-                    ml_weight = 0.2
-                    rule_weight = 0.8
-                elif last_gp < 12:
-                    ml_weight = 0.2
-                    rule_weight = 0.8
-                elif last_ppg > 12 and last_season.get("target_share", 0) > 0.15:
-                    ml_weight = 0.25
-                    rule_weight = 0.75
-                else:
-                    ml_weight = 0.5
-                    rule_weight = 0.5
-            elif player.get("position") == "QB":
-                if age <=24 and num_seasons <= 2:
-                    ml_weight = 0.9 # way better cuz samples for young qb are very high compared to other positions 
-                    rule_weight = 0.1
-                else:
-                    ml_weight = 0.
-                    rule_weight = 1 - ml_weight
-            elif player.get("position") in ("K", "DEF"):
-                ml_weight = 0.1
-                rule_weight = 0.9
-            else:
-                ml_weight = 0.1
-                rule_weight = 0.9
-
-            combined = round((raw_score * rule_weight) + (ml_score * ml_weight), 1)
-
-            players_cache.append({
-                "player_id": player_id,
-                "name": player["name"],
-                "position": player["position"],
-                "team": player["team"],
-                "age": player["age"],
-                "years_experience": player["years_experience"],
-                "projected_points": combined,
-                "num_seasons": num_seasons,
-                "seasons": player["seasons"],
-            })
-
-        players_cache.sort(key=lambda x: x["projected_points"], reverse=True)
-
     return players_cache
+
 
 @app.get("/api/players")
 def get_all_players(position: str = None):
     players = get_players()
-
     if position and position != "ALL":
         players = [p for p in players if p["position"] == position.upper()]
-
     return players
+
 
 @app.get("/api/players/{player_id}")
 def get_player(player_id: str):
@@ -119,25 +122,27 @@ def get_player(player_id: str):
             return player
     return {"error": "Player not found"}
 
+
 @app.get("/api/positions")
 def get_positions():
     return ["ALL", "QB", "RB", "WR", "TE", "K", "DEF"]
+
 
 @app.get("/api/players/{player_id}/weekly")
 def get_weekly_projection(player_id: str, opponent: str = None):
     players = get_players()
     player = next((p for p in players if p["player_id"] == player_id), None)
-    
+
     if not player:
         return {"error": "Player not found"}
-    
+
     base_weekly = round(player["projected_points"] / 17, 1)
 
+    opp_mult = 1.0
     if opponent:
-        adjusted = round(base_weekly * opp_mult, 1)
-    else:
-        adjusted = base_weekly
-        opp_mult = 1.0
+        pass
+
+    adjusted = round(base_weekly * opp_mult, 1)
 
     return {
         "player_id": player_id,
@@ -148,9 +153,9 @@ def get_weekly_projection(player_id: str, opponent: str = None):
         "adjusted_projection": adjusted,
     }
 
+
 @app.get("/api/schedule/{team}")
 def get_team_schedule(team: str):
-    import json
     path = f"cache/schedule_{team.upper()}.json"
     if not os.path.exists(path):
         return {"error": "Schedule not found"}
@@ -159,3 +164,10 @@ def get_team_schedule(team: str):
     return schedule
 
 
+@app.post("/api/cache/refresh")
+def refresh_cache():
+    global players_cache, _ml
+    players_cache = None
+    _ml = None
+    build_players_cache()
+    return {"status": "cache refreshed", "players": len(players_cache)}

@@ -8,7 +8,7 @@
   export let player
   export let onClose
 
-  let weeklyData = null
+  let scheduleData = null
   let activeTab = 'overview'
 
   const PLACEHOLDER = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='38' height='38' 
@@ -17,11 +17,11 @@
 
   onMount(async () => {
     try {
-      const res = await fetch(`http://localhost:8000/api/schedule/${player.team}`)
-      weeklyData = await res.json()
+      const res = await fetch(`http://localhost:8000/api/players/${player.player_id}/schedule-projections`)
+      scheduleData = await res.json()
     } catch (e) {
       console.error('Failed to fetch schedule:', e)
-      weeklyData = []   
+      scheduleData = null
     }
   })
 </script>
@@ -83,16 +83,16 @@
     </div>
 
     <div style={activeTab === 'overview' ? '' : 'display: none'}>
-      <OverviewTab {player} {weeklyData} />
+      <OverviewTab {player} weeklyData={scheduleData?.weeks ?? null} />
     </div>
     <div style={activeTab === 'schedule' ? '' : 'display: none'}>
-      <ScheduleTab {player} {weeklyData} />
+      <ScheduleTab data={scheduleData} />
     </div>
     <div style={activeTab === 'history' ? '' : 'display: none'}>
       <HistoryTab {player} />
     </div>
     <div style={activeTab === 'analysis' ? '' : 'display: none'}>
-        <AnalysisTab/>
+      <AnalysisTab />
     </div>
 
   </div>
@@ -109,7 +109,7 @@
     z-index: 100;
   }
 
- .modal {
+  .modal {
     background: #111827;
     border: 1px solid #374151;
     border-radius: 12px;

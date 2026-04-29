@@ -8,6 +8,18 @@ from ml_predictor import get_ml_predictor
 import os
 import json
 
+DEFENSE_RANKINGS = {
+    "SF": 17.2, "BAL": 18.1, "BUF": 18.4, "PHI": 18.9, "KC": 19.2,
+    "MIN": 19.8, "DET": 20.1, "GB": 20.4, "PIT": 20.7, "LAC": 21.0,
+    "HOU": 21.3, "WAS": 21.6, "CLE": 21.9, "SEA": 22.1, "DAL": 22.4,
+    "MIA": 22.7, "TB": 23.0, "ATL": 23.2, "LAR": 23.5, "DEN": 23.8,
+    "IND": 24.0, "CIN": 24.3, "NYJ": 24.6, "LV": 24.9, "JAX": 25.2,
+    "NE": 25.5, "NYG": 25.8, "ARI": 26.1, "CHI": 26.4, "NO": 26.7,
+    "CAR": 27.0, "TEN": 27.3
+}
+
+LEAGUE_AVG = sum(DEFENSE_RANKINGS.values()) / len(DEFENSE_RANKINGS)
+
 players_cache = None
 _ml = None
 
@@ -137,7 +149,6 @@ def get_weekly_projection(player_id: str, opponent: str = None):
         return {"error": "Player not found"}
 
     base_weekly = round(player["projected_points"] / 17, 1)
-
     opp_mult = 1.0
     if opponent:
         pass
@@ -151,6 +162,50 @@ def get_weekly_projection(player_id: str, opponent: str = None):
         "opponent": opponent,
         "opponent_multiplier": opp_mult,
         "adjusted_projection": adjusted,
+    }
+
+
+@app.get("/api/players/{player_id}/schedule-projections")
+def get_schedule_projections(player_id: str):
+    players = get_players()
+    player = next((p for p in players if p["player_id"] == player_id), None)
+
+    if not player:
+        return {"error": "Player not found"}
+
+    team = player["team"]
+    schedule_path = f"cache/schedule_{team.upper()}.json"
+    if not os.path.exists(schedule_path):
+        return {"error": "Schedule not found", "team": team}
+
+    with open(schedule_path) as f:
+        schedule = json.load(f)
+
+    base = player["projected_points"] / 17
+    raw_mults = [DEFENSE_RANKINGS.get(w["opponent"], LEAGUE_AVG) for w in schedule]
+    schedule_avg = sum(raw_mults) / len(raw_mults)
+    multipliers = [m / schedule_avg for m in raw_mults]
+
+    weeks = []
+    for week, mult in zip(schedule, multipliers):
+        projected = round(base * mult, 1)
+        weeks.append({
+            "week": week["week"],
+            "opponent": week["opponent"],
+            "home": week.get("home", True),
+            "defense_rating": DEFENSE_RANKINGS.get(week["opponent"], LEAGUE_AVG),
+            "multiplier": round(mult, 4),
+            "projected": projected,
+        })
+
+    sorted_weeks = sorted(weeks, key=lambda w: w["projected"], reverse=True)
+
+    return {
+        "player_id": player_id,
+        "name": player["name"],
+        "weeks": weeks,
+        "best_matchups": sorted_weeks[:3],
+        "worst_matchups": sorted_weeks[-3:][::-1],
     }
 
 

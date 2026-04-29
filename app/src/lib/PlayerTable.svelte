@@ -103,7 +103,14 @@
         <td><span class="pos-badge {player.position}">{player.position}</span></td>
         <td>{player.team ?? '—'}</td>
         <td>{player.age ?? '—'}</td>
-        <td class="pts">{player.projected_points}</td>
+        <td class="pts">
+          {player.projected_points}
+          {#if player.tag === 'sleeper'}
+            <span class="tag sleeper">BOOM</span>
+          {:else if player.tag === 'bust'}
+            <span class="tag bust">BUST</span>
+          {/if}
+        </td>
       </tr>
     {/each}
   </tbody>
@@ -246,6 +253,34 @@
     background: #374151;
     color: #f9fafb;
   }
+
+.pts-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.tag {
+  font-size: 0.6rem;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  letter-spacing: 0.05em;
+  margin-left: 0.4rem;
+  vertical-align: middle;
+}
+
+.tag.sleeper {
+  background: rgba(52, 211, 153, 0.15);
+  color: #34d399;
+  border: 1px solid #34d399;
+}
+
+.tag.bust {
+  background: rgba(248, 113, 113, 0.15);
+  color: #f87171;
+  border: 1px solid #f87171;
+}
 
   .pos-badge.QB  { background: #2d0a1e; color: #fc2b6d; }
   .pos-badge.RB  { background: #0a2420; color: #20ceb8; }

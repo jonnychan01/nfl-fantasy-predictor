@@ -7,6 +7,8 @@ from predictor import predict
 from ml_predictor import get_ml_predictor
 import os
 import json
+import httpx
+from collections import defaultdict
 
 DEFENSE_RANKINGS = {
     "SF": 17.2, "BAL": 18.1, "BUF": 18.4, "PHI": 18.9, "KC": 19.2,
@@ -24,6 +26,23 @@ players_cache = None
 _ml = None
 
 
+def fetch_adp_data() -> dict:
+    try:
+        url = "https://api.sleeper.com/projections/nfl/2025?season_type=regular&position[]=QB&position[]=RB&position[]=WR&position[]=TE&position[]=K&position[]=DEF"
+        res = httpx.get(url, timeout=30)
+        raw = res.json()
+        adp_map = {}
+        for entry in raw:
+            pid = entry.get("player_id")
+            adp = entry.get("stats", {}).get("adp_ppr")
+            if pid and adp and adp < 999:
+                adp_map[pid] = round(adp, 1)
+        return adp_map
+    except Exception as e:
+        print(f"ADP fetch failed: {e}")
+        return {}
+
+
 def build_players_cache():
     global players_cache, _ml
 
@@ -31,6 +50,7 @@ def build_players_cache():
     _ml = get_ml_predictor(training_data, force_retrain=True)
 
     active_players = load_all_data(require_team=True)
+    adp_data = fetch_adp_data()
     players_cache = []
 
     for player_id, player in active_players.items():
@@ -90,9 +110,30 @@ def build_players_cache():
             "projected_points": combined,
             "num_seasons": num_seasons,
             "seasons": player["seasons"],
+            "adp": adp_data.get(player_id),
         })
 
     players_cache.sort(key=lambda x: x["projected_points"], reverse=True)
+
+
+    pos_rank = defaultdict(int)
+
+    for i, p in enumerate(players_cache):
+        p["projected_rank"] = i + 1
+        pos_rank[p["position"]] += 1
+        p["projected_pos_rank"] = pos_rank[p["position"]]
+        adp = p.get("adp")
+        if adp and adp < 999:
+            diff = round(adp) - p["projected_rank"]
+            if diff >= 30:
+                p["tag"] = "sleeper"
+            elif diff <= -30:
+                p["tag"] = "bust"
+            else:
+                p["tag"] = None
+        else:
+            p["tag"] = None
+
     print(f"Cache built — {len(players_cache)} players loaded")
 
 
@@ -150,18 +191,33 @@ def get_weekly_projection(player_id: str, opponent: str = None):
 
     base_weekly = round(player["projected_points"] / 17, 1)
     opp_mult = 1.0
+    opp_rating = None
+
     if opponent:
-        pass
+        opponent = opponent.upper()
+        if opponent not in DEFENSE_RANKINGS:
+            return {"error": f"Unknown opponent: {opponent}"}
+        opp_rating = DEFENSE_RANKINGS[opponent]
+        opp_mult = round(opp_rating / LEAGUE_AVG, 4)
 
     adjusted = round(base_weekly * opp_mult, 1)
 
     return {
         "player_id": player_id,
         "name": player["name"],
+        "position": player["position"],
+        "team": player["team"],
         "base_weekly_projection": base_weekly,
         "opponent": opponent,
+        "opponent_defense_rating": opp_rating,
+        "league_avg_defense_rating": round(LEAGUE_AVG, 2),
         "opponent_multiplier": opp_mult,
         "adjusted_projection": adjusted,
+        "matchup_quality": (
+            "favorable" if opp_mult >= 1.05
+            else "unfavorable" if opp_mult <= 0.95
+            else "neutral"
+        )
     }
 
 

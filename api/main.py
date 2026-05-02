@@ -9,6 +9,7 @@ import os
 import json
 import httpx
 from collections import defaultdict
+from adp_estimator import ADPEstimator
 
 DEFENSE_RANKINGS = {
     "SF": 17.2, "BAL": 18.1, "BUF": 18.4, "PHI": 18.9, "KC": 19.2,
@@ -122,17 +123,16 @@ def build_players_cache():
         p["projected_rank"] = i + 1
         pos_rank[p["position"]] += 1
         p["projected_pos_rank"] = pos_rank[p["position"]]
+
+    estimator = ADPEstimator()
+    estimator.fit(players_cache)
+
+    for p in players_cache:
+        estimated = estimator.predict_adp(p, p["projected_pos_rank"], p["projected_rank"])
+        p["estimated_adp"] = estimated
         adp = p.get("adp")
-        if adp and adp < 999:
-            diff = round(adp) - p["projected_rank"]
-            if diff >= 30:
-                p["tag"] = "sleeper"
-            elif diff <= -30:
-                p["tag"] = "bust"
-            else:
-                p["tag"] = None
-        else:
-            p["tag"] = None
+        p["tag"] = estimator.tag(adp, estimated)
+        p["adp_diff"] = round(round(adp) - round(estimated)) if adp and estimated else None
 
     print(f"Cache built — {len(players_cache)} players loaded")
 

@@ -92,7 +92,7 @@
       <HistoryTab {player} />
     </div>
     <div style={activeTab === 'analysis' ? '' : 'display: none'}>
-      <AnalysisTab />
+      <AnalysisTab {player} />
     </div>
 
   </div>

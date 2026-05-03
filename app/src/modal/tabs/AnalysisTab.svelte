@@ -12,7 +12,7 @@
 
   $: adp = player?.adp ?? null
   $: rank = player?.projected_rank ?? null
-  $: diff = adp != null && rank != null ? Math.round(adp) - rank : null
+  $: diff = player?.adp_diff ?? null
 
   $: tagInfo = getTagInfo(player?.tag, diff)
 
@@ -108,9 +108,9 @@
   </div>
   <span class="arrow">→</span>
   <div class="adp-cell">
-    <span class="cell-label">OUR RANK</span>
-    <span class="cell-value">{rank ?? '—'}</span>
-    <span class="cell-sub">projected</span>
+    <span class="cell-label">EST. ADP</span>
+    <span class="cell-value">{player?.estimated_adp ?? '—'}</span>
+    <span class="cell-sub">our model</span>
   </div>
   <div class="tier-badge" style="border-color:{tagInfo.border}; background:{tagInfo.bg}; color:{tagInfo.color}">
     <span class="tier-icon">{tagInfo.icon}</span>

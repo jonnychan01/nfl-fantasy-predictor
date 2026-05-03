@@ -75,6 +75,55 @@ def fetch_team_schedule(espn_id: str, team_abbr: str):
         json.dump(schedule, f)
     time.sleep(0.3)
 
+def fetch_historical_adp():
+    all_adp = {}
+    positions = ["QB", "RB", "WR", "TE", "K", "DEF"]
+    years = ["2021", "2022", "2023", "2024", "2025"]
+
+    for year in years:
+        print(f"Fetching ADP for {year}...")
+        pos_params = "&".join([f"position[]={p}" for p in positions])
+        url = f"https://api.sleeper.com/projections/nfl/{year}?season_type=regular&{pos_params}"
+        path = os.path.join(CACHE_DIR, f"adp_{year}.json")
+
+        if os.path.exists(path):
+            print(f"  [cache hit] adp_{year}.json")
+            with open(path) as f:
+                year_data = json.load(f)
+        else:
+            print(f"  [fetching] adp_{year}.json")
+            try:
+                r = requests.get(url, timeout=30)
+                r.raise_for_status()
+                year_data = r.json()
+                with open(path, "w") as f:
+                    json.dump(year_data, f)
+                time.sleep(1)
+            except Exception as e:
+                print(f"  {year} failed: {e}")
+                continue
+
+        count = 0
+        for entry in year_data:
+            pid = entry.get("player_id")
+            adp = entry.get("stats", {}).get("adp_ppr")
+            pts = entry.get("stats", {}).get("pts_ppr")
+            if pid and adp and adp < 400:
+                if pid not in all_adp:
+                    all_adp[pid] = {}
+                all_adp[pid][year] = {
+                    "adp": round(adp, 1),
+                    "pts_ppr": round(pts, 1) if pts else None,
+                }
+                count += 1
+        print(f"  {year}: {count} players")
+
+    out_path = os.path.join(CACHE_DIR, "historical_adp.json")
+    with open(out_path, "w") as f:
+        json.dump(all_adp, f)
+    print(f"Saved {len(all_adp)} players to historical_adp.json")
+    return all_adp
+
 if __name__ == "__main__":
     # Fetch all NFL players
     print("Fetching player list...")
@@ -90,6 +139,9 @@ if __name__ == "__main__":
             f"https://api.sleeper.app/v1/stats/nfl/regular/{season}",
             f"stats_{season}.json"
         )
+
+    print("Fetching historical ADP...")
+    fetch_historical_adp()
 
     for espn_id, abbr in ESPN_TEAMS.items():
         fetch_team_schedule(espn_id, abbr)

@@ -69,6 +69,7 @@
         <th on:click={() => handleSort('team')}>Team {sortIcon('team')}</th>
         <th on:click={() => handleSort('age')}>Age {sortIcon('age')}</th>
         <th on:click={() => handleSort('projected_points')}>Projected Pts {sortIcon('projected_points')}</th>
+        <th on:click={() => handleSort('estimated_adp')}>Est. ADP {sortIcon('estimated_adp')}</th>
       </tr>
     </thead>
     <tbody>
@@ -111,6 +112,7 @@
             <span class="tag bust">BUST</span>
           {/if}
         </td>
+        <td>{player.estimated_adp ?? '—'}</td>
       </tr>
     {/each}
   </tbody>

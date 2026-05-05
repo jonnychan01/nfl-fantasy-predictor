@@ -48,9 +48,9 @@ def build_features(pts_ppr: float, position: str, pos_rank: int,
         age,
         scarcity,
         anchor,
-        pts_ppr * scarcity,       # interaction: points × scarcity
-        pos_rank * scarcity,      # interaction: rank × scarcity
-        pts_ppr / (pos_rank + 1), # points per rank — efficiency signal
+        pts_ppr * scarcity,       
+        pos_rank * scarcity,      
+        pts_ppr / (pos_rank + 1), 
     ])
 
 FEATURE_NAMES = [
@@ -78,7 +78,6 @@ class ADPEstimator:
         with open(players_path) as f:
             players_meta = json.load(f)
 
-        # Group pts+adp by year and position to derive positional rank
         year_pos_entries: dict = {}
         for pid, years in hist.items():
             meta = players_meta.get(pid, {})
@@ -102,10 +101,9 @@ class ADPEstimator:
         y_by_pos = {p: [] for p in POSITIONS}
 
         for (year, pos), entries in year_pos_entries.items():
-            # Rank by pts descending to get positional rank that year
             entries.sort(key=lambda x: x[1], reverse=True)
             for pos_rank, (pid, pts, adp, age) in enumerate(entries, 1):
-                feats = build_features(pts, pos, pos_rank, pos_rank, age)
+                feats = build_features(pts, pos, pos_rank, pos_ransk, age)
                 X_by_pos[pos].append(feats)
                 y_by_pos[pos].append(adp)
 
@@ -149,7 +147,6 @@ class ADPEstimator:
         feats = build_features(pts, position, pos_rank, overall_rank, age).reshape(1, -1)
         raw = self.models[position].predict(feats)[0]
 
-        # 70/30 blend with anchor — prevents wild extrapolation on unseen players
         blended = raw * 0.7 + anchor * 0.3
         return round(float(np.clip(blended, 1, 220)), 1)
 

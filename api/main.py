@@ -23,8 +23,11 @@ DEFENSE_RANKINGS = {
 
 LEAGUE_AVG = sum(DEFENSE_RANKINGS.values()) / len(DEFENSE_RANKINGS)
 
+DEPTH_CHART_POSITIONS = ["QB", "RB", "WR", "TE", "K", "DEF"]
+
 players_cache = None
 _ml = None
+_sleeper_players_cache = None
 
 
 def fetch_adp_data() -> dict:
@@ -41,6 +44,39 @@ def fetch_adp_data() -> dict:
         return adp_map
     except Exception as e:
         print(f"ADP fetch failed: {e}")
+        return {}
+
+
+def fetch_sleeper_players() -> dict:
+    """Fetch and cache the full Sleeper players roster (used for depth charts)."""
+    global _sleeper_players_cache
+    if _sleeper_players_cache is not None:
+        return _sleeper_players_cache
+
+    cache_path = "cache/sleeper_players.json"
+
+    # Use cached file if it exists and is recent enough
+    if os.path.exists(cache_path):
+        try:
+            with open(cache_path) as f:
+                _sleeper_players_cache = json.load(f)
+            print(f"Loaded Sleeper players from disk cache ({len(_sleeper_players_cache)} players)")
+            return _sleeper_players_cache
+        except Exception:
+            pass
+
+    try:
+        print("Fetching Sleeper players database...")
+        res = httpx.get("https://api.sleeper.app/v1/players/nfl", timeout=60)
+        data = res.json()
+        os.makedirs("cache", exist_ok=True)
+        with open(cache_path, "w") as f:
+            json.dump(data, f)
+        _sleeper_players_cache = data
+        print(f"Fetched and cached {len(data)} Sleeper players")
+        return data
+    except Exception as e:
+        print(f"Sleeper players fetch failed: {e}")
         return {}
 
 
@@ -115,7 +151,6 @@ def build_players_cache():
         })
 
     players_cache.sort(key=lambda x: x["projected_points"], reverse=True)
-
 
     pos_rank = defaultdict(int)
 
@@ -273,6 +308,93 @@ def get_team_schedule(team: str):
     with open(path) as f:
         schedule = json.load(f)
     return schedule
+
+
+@app.get("/api/players/{player_id}/adp-history")
+def get_adp_history(player_id: str):
+    players = get_players()
+    player = next((p for p in players if p["player_id"] == player_id), None)
+
+    if not player:
+        return {"error": "Player not found"}
+
+    hist_path = "cache/historical_adp.json"
+    historical = []
+
+    if os.path.exists(hist_path):
+        try:
+            with open(hist_path) as f:
+                hist = json.load(f)
+            player_hist = hist.get(player_id, {})
+            for year in sorted(player_hist.keys()):
+                entry = player_hist[year]
+                adp = entry.get("adp")
+                if adp and adp < 400:
+                    historical.append({"year": int(year), "adp": round(adp, 1)})
+        except Exception as e:
+            print(f"ADP history read failed: {e}")
+
+    return {
+        "player_id": player_id,
+        "name": player["name"],
+        "historical": historical,
+        "current_adp": player.get("adp"),
+        "estimated_adp": player.get("estimated_adp"),
+    }
+
+
+@app.get("/api/players/{player_id}/depth-chart")
+def get_depth_chart(player_id: str):
+    players = get_players()
+    player = next((p for p in players if p["player_id"] == player_id), None)
+
+    if not player:
+        return {"error": "Player not found"}
+
+    team = player["team"]
+    sleeper_players = fetch_sleeper_players()
+
+    if not sleeper_players:
+        return {"error": "Could not load player data"}
+
+    # Collect all players on this team with depth chart info
+    depth_by_pos: dict = {pos: [] for pos in DEPTH_CHART_POSITIONS}
+
+    for pid, pdata in sleeper_players.items():
+        if pdata.get("team") != team:
+            continue
+        if pdata.get("status") == "Inactive":
+            continue
+
+        pos = pdata.get("position")
+        if pos not in DEPTH_CHART_POSITIONS:
+            continue
+
+        depth_order = pdata.get("depth_chart_order")
+        if depth_order is None:
+            continue
+
+        depth_by_pos[pos].append({
+            "player_id": pid,
+            "name": f"{pdata.get('first_name', '')} {pdata.get('last_name', '')}".strip(),
+            "depth_order": depth_order,
+            "is_current_player": pid == player_id,
+            "jersey_number": pdata.get("number"),
+            "status": pdata.get("injury_status") or pdata.get("status") or "Active",
+        })
+
+    # Sort each position group by depth order
+    result = {}
+    for pos in DEPTH_CHART_POSITIONS:
+        group = sorted(depth_by_pos[pos], key=lambda x: x["depth_order"])
+        if group:
+            result[pos] = group
+
+    return {
+        "player_id": player_id,
+        "team": team,
+        "depth_chart": result,
+    }
 
 
 @app.post("/api/cache/refresh")

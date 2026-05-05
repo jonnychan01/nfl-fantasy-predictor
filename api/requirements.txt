@@ -4,3 +4,4 @@ numpy
 requests
 scikit-learn
 lightgbm
+httpx

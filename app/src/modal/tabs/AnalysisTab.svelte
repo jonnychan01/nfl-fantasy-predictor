@@ -25,12 +25,10 @@
     rzShare,
   })
 
-  // ── ADP chart ────────────────────────────────────────────────
   let canvasAdp
   let adpChart = null
   let adpHistory = null
 
-  // ── Depth chart ──────────────────────────────────────────────
   let depthData = null
   let depthLoading = false
 
@@ -121,7 +119,7 @@
       },
       options: {
         responsive: true,
-        maintainAspectRatio: true,
+        maintainAspectRatio: false,
         animation: { duration: 400 },
         scales: {
           x: {
@@ -168,7 +166,6 @@
 
   onDestroy(() => { if (adpChart) adpChart.destroy() })
 
-  // ── Helpers ──────────────────────────────────────────────────
   function getTagInfo(tag, d) {
     if (tag === 'sleeper') return { label: 'SLEEPER', color: '#34d399', bg: 'rgba(52,211,153,0.08)', border: '#10b981', icon: '💎', sub: d != null ? `+${d} spots of value` : '' }
     if (tag === 'bust')    return { label: 'BUST',    color: '#f87171', bg: 'rgba(248,113,113,0.08)', border: '#dc2626', icon: '⚠️', sub: d != null ? `${d} spots of value` : '' }
@@ -210,7 +207,6 @@
   }
 </script>
 
-<!-- ── ADP vs Projection ─────────────────────────────────────── -->
 <div class="section-label">ADP vs Projection</div>
 <div class="adp-card">
   <div class="adp-cell">
@@ -236,10 +232,7 @@
   {/if}
 </div>
 
-<!-- ── ADP Chart + Depth Chart side by side ─────────────────── -->
-<div class="side-by-side" style="margin-top:1.25rem">
-
-  <!-- ADP Trend -->
+<div class="top-row">
   <div class="side-panel">
     <div class="trend-header">
       <span class="section-label" style="margin:0">ADP Trend</span>
@@ -259,9 +252,26 @@
     {/if}
   </div>
 
-  <!-- Depth Chart -->
   <div class="side-panel">
-    <span class="section-label" style="margin-bottom:0.5rem; display:block">
+    <span class="section-label" style="margin:0 0 0.5rem">Smart Insights</span>
+    {#if insights.length > 0}
+      <div class="insights">
+        {#each insights as item}
+          <div class="insight">
+            <span class="insight-icon">{item.icon}</span>
+            <span class="insight-text">{item.text}</span>
+          </div>
+        {/each}
+      </div>
+    {:else}
+      <div class="depth-empty">No insights available</div>
+    {/if}
+  </div>
+</div>
+
+<div class="bottom-row">
+  <div class="depth-panel">
+    <span class="section-label" style="margin-bottom:0.5rem; display:block; text-align:center">
       {player?.team ?? ''} Depth Chart
     </span>
     {#if depthLoading}
@@ -297,21 +307,7 @@
       <div class="depth-empty">No depth chart available</div>
     {/if}
   </div>
-
 </div>
-
-<!-- ── Smart Insights ────────────────────────────────────────── -->
-{#if insights.length > 0}
-  <div class="section-label" style="margin-top:1.25rem">Smart Insights</div>
-  <div class="insights">
-    {#each insights as item}
-      <div class="insight">
-        <span class="insight-icon">{item.icon}</span>
-        <span class="insight-text">{item.text}</span>
-      </div>
-    {/each}
-  </div>
-{/if}
 
 <style>
   .section-label {
@@ -323,7 +319,6 @@
     margin-bottom: 0.5rem;
   }
 
-  /* ── ADP card ── */
   .adp-card {
     display: flex;
     align-items: center;
@@ -333,6 +328,7 @@
     border-radius: 10px;
     padding: 1rem;
     flex-wrap: wrap;
+    margin-bottom: 1.25rem;
   }
 
   .adp-cell {
@@ -391,12 +387,12 @@
     margin-left: 0.25rem;
   }
 
-  /* ── Side by side layout ── */
-  .side-by-side {
+  .top-row {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 0.75rem;
-    align-items: start;
+    align-items: stretch;
+    margin-bottom: 1.25rem;
   }
 
   .side-panel {
@@ -405,7 +401,16 @@
     min-width: 0;
   }
 
-  /* ── ADP chart ── */
+  .bottom-row {
+    display: flex;
+    justify-content: center;
+  }
+
+  .depth-panel {
+    width: 100%;
+    max-width: 600px;
+  }
+
   .trend-header {
     display: flex;
     align-items: center;
@@ -449,9 +454,18 @@
     border: 1px solid #1f2937;
     border-radius: 8px;
     padding: 0.6rem;
+    flex: 1;
+    min-height: 220px;
+    position: relative;
   }
 
-  /* ── Depth chart ── */
+  .chart-box canvas {
+    position: absolute;
+    inset: 0.6rem;
+    width: calc(100% - 1.2rem) !important;
+    height: calc(100% - 1.2rem) !important;
+  }
+
   .depth-card {
     background: #111827;
     border: 1px solid #1f2937;
@@ -494,7 +508,8 @@
   .depth-row {
     display: flex;
     align-items: center;
-    gap: 0.4rem;
+    justify-content: center;
+    gap: 0.5rem;
     padding: 0.1rem 0.3rem;
     border-radius: 4px;
   }
@@ -510,6 +525,7 @@
     color: #374151;
     min-width: 18px;
     flex-shrink: 0;
+    text-align: right;
   }
 
   .depth-order-1 { color: #facc15; }
@@ -517,11 +533,11 @@
   .depth-name {
     font-size: 0.75rem;
     color: #9ca3af;
-    flex: 1;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    min-width: 0;
+    text-align: center;
+    min-width: 120px;
   }
 
   .depth-name-active {
@@ -535,6 +551,7 @@
     text-transform: uppercase;
     letter-spacing: 0.04em;
     flex-shrink: 0;
+    min-width: 80px;
   }
 
   .depth-empty {
@@ -543,16 +560,16 @@
     padding: 0.75rem 0.25rem;
   }
 
-  /* ── Insights ── */
   .insights {
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
+    flex: 1;
   }
 
   .insight {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: 0.75rem;
     background: #111827;
     border: 1px solid #1f2937;
@@ -561,6 +578,6 @@
     padding: 0.7rem 0.9rem;
   }
 
-  .insight-icon { font-size: 1.05rem; }
-  .insight-text { color: #e5e7eb; font-size: 0.88rem; }
+  .insight-icon { font-size: 1.05rem; flex-shrink: 0; }
+  .insight-text { color: #e5e7eb; font-size: 0.88rem; line-height: 1.4; }
 </style>

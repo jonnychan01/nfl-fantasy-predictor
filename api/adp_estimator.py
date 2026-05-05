@@ -103,7 +103,7 @@ class ADPEstimator:
         for (year, pos), entries in year_pos_entries.items():
             entries.sort(key=lambda x: x[1], reverse=True)
             for pos_rank, (pid, pts, adp, age) in enumerate(entries, 1):
-                feats = build_features(pts, pos, pos_rank, pos_ransk, age)
+                feats = build_features(pts, pos, pos_rank, pos_rank, age)
                 X_by_pos[pos].append(feats)
                 y_by_pos[pos].append(adp)
 

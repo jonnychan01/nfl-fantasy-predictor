@@ -143,12 +143,12 @@
     }
   }
 
-  function getRowColor(pts, allWeeks) {
+  function getRowClass(pts, allWeeks) {
     if (!pts || allWeeks.length === 0) return ''
     const avg = allWeeks.reduce((a, w) => a + (w.stats?.pts_ppr ?? 0), 0) / allWeeks.length
-    if (pts >= avg * 1.2) return 'row-good'
-    if (pts <= avg * 0.8) return 'row-bad'
-    return 'row-mid'
+    if (pts >= avg * 1.2) return 'border-l-[3px] border-l-emerald-400 bg-emerald-400/5 hover:!bg-emerald-400/10'
+    if (pts <= avg * 0.8) return 'border-l-[3px] border-l-red-400 bg-red-400/5 hover:!bg-red-400/10'
+    return 'border-l-[3px] border-l-yellow-400 bg-yellow-400/[0.03] hover:!bg-yellow-400/[0.07]'
   }
 
   onMount(() => {
@@ -166,232 +166,68 @@
   })
 </script>
 
-<div class="season-tabs">
+<div class="flex flex-wrap gap-1.5 mb-4">
   {#each seasons as season}
     <button
-      class:active={selectedSeason === season}
+      class="px-3 py-1 rounded-full border text-[0.8rem] cursor-pointer transition-colors
+        {selectedSeason === season
+          ? 'bg-blue-500 border-blue-500 text-white'
+          : 'bg-border-soft border-border text-gray-400'}"
       on:click={() => selectedSeason = season}
     >{season}</button>
   {/each}
 </div>
 
-<div class="table-wrapper">
+<div class="overflow-x-auto mb-8 rounded-lg border border-border-soft">
   {#if loadingWeekly}
-    <div class="empty-state">Loading...</div>
+    <div class="p-8 text-center text-gray-500 text-sm">Loading...</div>
   {:else if weeklyData[selectedSeason]?.length}
-    <table>
+    <table class="w-full border-collapse text-xs">
       <thead>
-        <tr>
-          <th>WK</th>
-          <th>OPP</th>
+        <tr class="bg-surface">
+          <th class="px-2 py-1.5 text-left text-gray-500 font-semibold text-[0.65rem] uppercase tracking-wider whitespace-nowrap">WK</th>
+          <th class="px-2 py-1.5 text-left text-gray-500 font-semibold text-[0.65rem] uppercase tracking-wider whitespace-nowrap">OPP</th>
           {#each columns as col}
-            <th>{col.label}</th>
+            <th class="px-2 py-1.5 text-right text-gray-500 font-semibold text-[0.65rem] uppercase tracking-wider whitespace-nowrap">{col.label}</th>
           {/each}
         </tr>
       </thead>
       <tbody>
         {#each weeklyData[selectedSeason] as week}
-          <tr class={getRowColor(week.stats?.pts_ppr, weeklyData[selectedSeason])}>
-            <td>{week.week}</td>
-            <td class="opp">{week.opponent ?? '—'}</td>
+          <tr class="hover:bg-border-soft {getRowClass(week.stats?.pts_ppr, weeklyData[selectedSeason])}">
+            <td class="px-2 py-1 text-left text-gray-300 border-t border-border-soft whitespace-nowrap">{week.week}</td>
+            <td class="px-2 py-1 text-left text-gray-500 text-xs border-t border-border-soft whitespace-nowrap">{week.opponent ?? '—'}</td>
             {#each columns as col}
-              <td class={col.key === 'pts_ppr' ? 'pts-cell' : ''}>{week.stats?.[col.key] ?? '—'}</td>
+              <td class="px-2 py-1 text-right border-t border-border-soft whitespace-nowrap {col.key === 'pts_ppr' ? 'font-bold text-gray-50' : 'text-gray-300'}">{week.stats?.[col.key] ?? '—'}</td>
             {/each}
           </tr>
         {/each}
       </tbody>
     </table>
   {:else}
-    <div class="empty-state">No data available</div>
+    <div class="p-8 text-center text-gray-500 text-sm">No data available</div>
   {/if}
 </div>
 
-<div class="trend-header">
-  <h3 class="section-label">Career Trend</h3>
-  <div class="legend">
-    <span class="legend-item">
-      <span class="dot blue"></span>Historical
+<div class="flex items-center gap-4 mb-3">
+  <h3 class="text-gray-400 text-sm font-semibold m-0">Career Trend</h3>
+  <div class="flex gap-3">
+    <span class="flex items-center gap-1.5 text-gray-500 text-xs">
+      <span class="w-5 h-0.5 rounded-sm bg-blue-500"></span>Historical
     </span>
-    <span class="legend-item">
-      <span class="dot green"></span>Projected 2026
+    <span class="flex items-center gap-1.5 text-gray-500 text-xs">
+      <span class="w-5 h-0.5 rounded-sm" style="background: repeating-linear-gradient(to right, #34d399 0px, #34d399 4px, transparent 4px, transparent 8px)"></span>Projected 2026
     </span>
   </div>
 </div>
 
-<div class="charts-row">
-  <div class="chart-box">
-    <p class="chart-title">PPG</p>
+<div class="grid grid-cols-2 gap-4">
+  <div class="bg-surface border border-border-soft rounded-lg p-3">
+    <p class="text-gray-500 text-[0.72rem] font-semibold uppercase tracking-wider m-0 mb-2">PPG</p>
     <canvas bind:this={canvasPpg}></canvas>
   </div>
-  <div class="chart-box">
-    <p class="chart-title">Total Pts</p>
+  <div class="bg-surface border border-border-soft rounded-lg p-3">
+    <p class="text-gray-500 text-[0.72rem] font-semibold uppercase tracking-wider m-0 mb-2">Total Pts</p>
     <canvas bind:this={canvasTotal}></canvas>
   </div>
 </div>
-
-<style>
-  .season-tabs {
-    display: flex;
-    gap: 0.4rem;
-    margin-bottom: 1rem;
-    flex-wrap: wrap;
-  }
-
-  .season-tabs button {
-    padding: 0.3rem 0.8rem;
-    border: 1px solid #374151;
-    background: #1f2937;
-    color: #9ca3af;
-    border-radius: 999px;
-    cursor: pointer;
-    font-size: 0.8rem;
-    transition: all 0.2s;
-  }
-
-  .season-tabs button.active {
-    background: #3b82f6;
-    border-color: #3b82f6;
-    color: white;
-  }
-
-  .table-wrapper {
-    overflow-x: auto;
-    margin-bottom: 2rem;
-    border-radius: 8px;
-    border: 1px solid #1f2937;
-  }
-
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 0.75rem;
-  }
-
-  thead tr { background: #111827; }
-
-  th {
-    padding: 0.35rem 0.5rem;
-    text-align: right;
-    color: #6b7280;
-    font-weight: 600;
-    font-size: 0.65rem;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    white-space: nowrap;
-  }
-
-  th:first-child, th:nth-child(2) { text-align: left; }
-
-  td {
-    padding: 0.3rem 0.5rem;
-    text-align: right;
-    color: #d1d5db;
-    border-top: 1px solid #1f2937;
-    white-space: nowrap;
-  }
-
-  td:first-child, td:nth-child(2) { text-align: left; }
-
-  td.opp {
-    color: #6b7280;
-    font-size: 0.75rem;
-  }
-
-  td.pts-cell {
-    font-weight: 700;
-    color: #f9fafb;
-  }
-
-  tbody tr:hover { background: #1f2937; }
-
-  tbody tr.row-good {
-    border-left: 3px solid #34d399;
-    background: rgba(52, 211, 153, 0.05);
-  }
-
-  tbody tr.row-bad {
-    border-left: 3px solid #f87171;
-    background: rgba(248, 113, 113, 0.05);
-  }
-
-  tbody tr.row-mid {
-    border-left: 3px solid #facc15;
-    background: rgba(250, 204, 21, 0.03);
-  }
-
-  tbody tr.row-good:hover { background: rgba(52, 211, 153, 0.1); }
-  tbody tr.row-bad:hover  { background: rgba(248, 113, 113, 0.1); }
-  tbody tr.row-mid:hover  { background: rgba(250, 204, 21, 0.07); }
-
-  .empty-state {
-    padding: 2rem;
-    text-align: center;
-    color: #6b7280;
-    font-size: 0.85rem;
-  }
-
-  .trend-header {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    margin-bottom: 0.75rem;
-  }
-
-  .section-label {
-    color: #9ca3af;
-    font-size: 0.85rem;
-    font-weight: 600;
-    margin: 0;
-  }
-
-  .legend {
-    display: flex;
-    gap: 0.75rem;
-  }
-
-  .legend-item {
-    display: flex;
-    align-items: center;
-    gap: 0.35rem;
-    color: #6b7280;
-    font-size: 0.75rem;
-  }
-
-  .dot {
-    width: 20px;
-    height: 2px;
-    border-radius: 1px;
-  }
-
-  .dot.blue { background: #3b82f6; }
-
-  .dot.green {
-    background: repeating-linear-gradient(
-      to right,
-      #34d399 0px, #34d399 4px,
-      transparent 4px, transparent 8px
-    );
-  }
-
-  .charts-row {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 1rem;
-  }
-
-  .chart-box {
-    background: #111827;
-    border: 1px solid #1f2937;
-    border-radius: 8px;
-    padding: 0.75rem;
-  }
-
-  .chart-title {
-    color: #6b7280;
-    font-size: 0.72rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    margin: 0 0 0.5rem 0;
-  }
-</style>

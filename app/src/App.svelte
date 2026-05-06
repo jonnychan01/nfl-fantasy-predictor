@@ -1,50 +1,27 @@
 <script>
   import { onMount } from 'svelte'
-  import PlayerTable from './lib/PlayerTable.svelte'
-
-  let players = []
-  let loading = true
-  let error = null
-
-  onMount(async () => {
-    try {
-      const res = await fetch('http://localhost:8000/api/players')
-      players = await res.json()
+import PlayerTable from './lib/PlayerTable.svelte'
+let players = []
+let loading = true
+let error = null
+onMount(async () => {
+try {
+const res = await fetch('http://localhost:8000/api/players')
+players = await res.json()
     } catch (e) {
-      error = 'Failed to load players. Is the API running?'
+error = 'Failed to load players. Is the API running?'
     } finally {
-      loading = false
+loading = false
     }
   })
 </script>
-
-<main>
-  <h1>🏈 NFL Fantasy Predictor</h1>
-
+<main class="max-w-[1200px] mx-auto p-8 text-center">
+<h1 class="text-3xl mb-6 font-semibold text-gray-900">🏈 NFL Fantasy Predictor</h1>
   {#if loading}
-    <p>Loading players...</p>
+<p>Loading players...</p>
   {:else if error}
-    <p class="error">{error}</p>
+<p class="text-red-500">{error}</p>
   {:else}
-    <PlayerTable {players} />
+<PlayerTable {players} />
   {/if}
 </main>
-
-<style>
-  main {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 2rem;
-    font-family: sans-serif;
-    text-align: center;
-  }
-
-  h1 {
-    font-size: 2rem;
-    margin-bottom: 1.5rem;
-  }
-
-  .error {
-    color: red;
-  }
-</style>

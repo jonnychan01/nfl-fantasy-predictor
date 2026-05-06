@@ -34,6 +34,9 @@
 
   const POSITION_ORDER = ['QB', 'RB', 'WR', 'TE', 'K', 'DEF']
 
+  const SECTION_LABEL = 'text-gray-400 text-xs font-semibold uppercase tracking-wider mb-2'
+  const EMPTY = 'text-gray-600 text-[0.8rem] py-3 px-1'
+
   $: if (player?.player_id) {
     fetchAdpHistory(player.player_id)
     fetchDepthChart(player.player_id)
@@ -207,92 +210,102 @@
   }
 </script>
 
-<div class="section-label">ADP vs Projection</div>
-<div class="adp-card">
-  <div class="adp-cell">
-    <span class="cell-label">ADP</span>
-    <span class="cell-value">{adp ?? '—'}</span>
-    <span class="cell-sub">draft pos</span>
+<div class={SECTION_LABEL}>ADP vs Projection</div>
+<div class="flex flex-wrap items-center gap-4 bg-surface border border-border-soft rounded-[10px] p-4 mb-5">
+  <div class="flex flex-col items-center bg-surface-deep border border-border-soft rounded-lg px-[1.1rem] py-2.5 min-w-[110px]">
+    <span class="text-[0.62rem] font-semibold uppercase tracking-wider text-gray-500">ADP</span>
+    <span class="text-[1.7rem] font-bold text-gray-50 leading-tight">{adp ?? '—'}</span>
+    <span class="text-xs text-gray-500">draft pos</span>
   </div>
-  <span class="arrow">→</span>
-  <div class="adp-cell">
-    <span class="cell-label">EST. ADP</span>
-    <span class="cell-value">{player?.estimated_adp ?? '—'}</span>
-    <span class="cell-sub">our model</span>
+  <span class="text-gray-500 text-lg">→</span>
+  <div class="flex flex-col items-center bg-surface-deep border border-border-soft rounded-lg px-[1.1rem] py-2.5 min-w-[110px]">
+    <span class="text-[0.62rem] font-semibold uppercase tracking-wider text-gray-500">EST. ADP</span>
+    <span class="text-[1.7rem] font-bold text-gray-50 leading-tight">{player?.estimated_adp ?? '—'}</span>
+    <span class="text-xs text-gray-500">our model</span>
   </div>
-  <div class="tier-badge" style="border-color:{tagInfo.border}; background:{tagInfo.bg}; color:{tagInfo.color}">
-    <span class="tier-icon">{tagInfo.icon}</span>
-    <span class="tier-label">{tagInfo.label}</span>
+  <div
+    class="flex items-center gap-2 px-4 py-2.5 rounded-lg border font-bold text-sm tracking-wider"
+    style="border-color:{tagInfo.border}; background:{tagInfo.bg}; color:{tagInfo.color}"
+  >
+    <span class="text-base">{tagInfo.icon}</span>
+    <span>{tagInfo.label}</span>
   </div>
   {#if tagInfo.sub}
-    <div class="tier-sub" style="color:{tagInfo.color}">
+    <div class="ml-auto text-sm font-bold" style="color:{tagInfo.color}">
       <strong>{tagInfo.sub.split(' ')[0]}</strong>
-      <span class="muted">{tagInfo.sub.split(' ').slice(1).join(' ')}</span>
+      <span class="text-gray-500 font-medium ml-1">{tagInfo.sub.split(' ').slice(1).join(' ')}</span>
     </div>
   {/if}
 </div>
 
-<div class="top-row">
-  <div class="side-panel">
-    <div class="trend-header">
-      <span class="section-label" style="margin:0">ADP Trend</span>
-      <div class="legend">
-        <span class="legend-item"><span class="dot blue"></span>Historical</span>
+<div class="grid grid-cols-2 gap-3 items-stretch mb-5">
+  <div class="flex flex-col min-w-0">
+    <div class="flex flex-wrap items-center gap-2 mb-2">
+      <span class={SECTION_LABEL.replace('mb-2', 'm-0')}>ADP Trend</span>
+      <div class="flex gap-2 ml-auto">
+        <span class="flex items-center gap-1 text-gray-500 text-[0.7rem]">
+          <span class="w-4 h-0.5 rounded-sm shrink-0 bg-blue-500"></span>Historical
+        </span>
         {#if adpHistory?.estimated_adp}
-          <span class="legend-item"><span class="dot green"></span>'26</span>
+          <span class="flex items-center gap-1 text-gray-500 text-[0.7rem]">
+            <span class="w-4 h-0.5 rounded-sm shrink-0" style="background: repeating-linear-gradient(to right, #34d399 0px, #34d399 3px, transparent 3px, transparent 6px)"></span>'26
+          </span>
         {/if}
       </div>
     </div>
     {#if adpHistory && (adpHistory.historical?.length > 0 || adpHistory.current_adp)}
-      <div class="chart-box">
-        <canvas bind:this={canvasAdp}></canvas>
+      <div class="bg-surface border border-border-soft rounded-lg p-2.5 flex-1 min-h-[220px] relative">
+        <canvas bind:this={canvasAdp} class="absolute inset-2.5 !w-[calc(100%-1.25rem)] !h-[calc(100%-1.25rem)]"></canvas>
       </div>
     {:else}
-      <div class="depth-empty">No ADP data available</div>
+      <div class={EMPTY}>No ADP data available</div>
     {/if}
   </div>
 
-  <div class="side-panel">
-    <span class="section-label" style="margin:0 0 0.5rem">Smart Insights</span>
+  <div class="flex flex-col min-w-0">
+    <span class="{SECTION_LABEL.replace('mb-2', 'mb-2')}">Smart Insights</span>
     {#if insights.length > 0}
-      <div class="insights">
+      <div class="flex flex-col gap-2 flex-1">
         {#each insights as item}
-          <div class="insight">
-            <span class="insight-icon">{item.icon}</span>
-            <span class="insight-text">{item.text}</span>
+          <div class="flex items-start gap-3 bg-surface border border-border-soft border-l-[3px] !border-l-emerald-400 rounded-lg px-3.5 py-2.5">
+            <span class="text-base shrink-0">{item.icon}</span>
+            <span class="text-gray-200 text-[0.88rem] leading-snug">{item.text}</span>
           </div>
         {/each}
       </div>
     {:else}
-      <div class="depth-empty">No insights available</div>
+      <div class={EMPTY}>No insights available</div>
     {/if}
   </div>
 </div>
 
-<div class="bottom-row">
-  <div class="depth-panel">
-    <span class="section-label" style="margin-bottom:0.5rem; display:block; text-align:center">
+<div class="flex justify-center">
+  <div class="w-full max-w-[600px]">
+    <span class="block text-center text-gray-400 text-xs font-semibold uppercase tracking-wider mb-2">
       {player?.team ?? ''} Depth Chart
     </span>
     {#if depthLoading}
-      <div class="depth-empty">Loading...</div>
+      <div class={EMPTY}>Loading...</div>
     {:else if depthData?.depth_chart}
-      <div class="depth-card">
+      <div class="bg-surface border border-border-soft rounded-lg px-2 py-1.5 flex flex-col overflow-hidden">
         {#each POSITION_ORDER as pos}
           {#if depthData.depth_chart[pos]?.length}
-            <div class="depth-group">
-              <div class="depth-pos-label">{pos}</div>
-              <div class="depth-players">
+            <div class="flex items-start gap-2 px-1 py-1.5 border-b border-border-soft last:border-b-0">
+              <div class="min-w-[28px] text-[0.65rem] font-bold text-gray-600 uppercase tracking-wider pt-0.5 shrink-0">{pos}</div>
+              <div class="flex flex-col gap-0.5 flex-1 min-w-0">
                 {#each depthData.depth_chart[pos] as p}
-                  <div class="depth-row" class:depth-highlighted={p.is_current_player}>
-                    <span class="depth-order" class:depth-order-1={p.depth_order === 1}>
+                  <div class="flex items-center justify-center gap-2 px-1.5 py-0.5 rounded {p.is_current_player ? 'bg-blue-500/[0.08] border border-blue-500/20' : ''}">
+                    <span class="text-[0.62rem] font-semibold min-w-[18px] shrink-0 text-right {p.depth_order === 1 ? 'text-yellow-400' : 'text-gray-700'}">
                       #{p.depth_order}
                     </span>
-                    <span class="depth-name" class:depth-name-active={p.is_current_player}>
+                    <span class="text-xs whitespace-nowrap overflow-hidden text-ellipsis text-center min-w-[120px] {p.is_current_player ? 'text-gray-50 font-semibold' : 'text-gray-400'}">
                       {p.name}
                     </span>
                     {#if p.status && p.status !== 'Active'}
-                      <span class="depth-status" style="color:{statusColor(p.status)}">
+                      <span
+                        class="text-[0.6rem] font-semibold uppercase tracking-wider shrink-0 min-w-[80px]"
+                        style="color:{statusColor(p.status)}"
+                      >
                         {p.status}
                       </span>
                     {/if}
@@ -304,280 +317,7 @@
         {/each}
       </div>
     {:else}
-      <div class="depth-empty">No depth chart available</div>
+      <div class={EMPTY}>No depth chart available</div>
     {/if}
   </div>
 </div>
-
-<style>
-  .section-label {
-    color: #9ca3af;
-    font-size: 0.75rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.07em;
-    margin-bottom: 0.5rem;
-  }
-
-  .adp-card {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    background: #111827;
-    border: 1px solid #1f2937;
-    border-radius: 10px;
-    padding: 1rem;
-    flex-wrap: wrap;
-    margin-bottom: 1.25rem;
-  }
-
-  .adp-cell {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    background: #0b1220;
-    border: 1px solid #1f2937;
-    border-radius: 8px;
-    padding: 0.65rem 1.1rem;
-    min-width: 110px;
-  }
-
-  .arrow { color: #6b7280; font-size: 1.1rem; }
-
-  .cell-label {
-    font-size: 0.62rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.07em;
-    color: #6b7280;
-  }
-
-  .cell-value {
-    font-size: 1.7rem;
-    font-weight: 700;
-    color: #f9fafb;
-    line-height: 1.1;
-  }
-
-  .cell-sub { font-size: 0.7rem; color: #6b7280; }
-
-  .tier-badge {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.65rem 1rem;
-    border-radius: 8px;
-    border: 1px solid;
-    font-weight: 700;
-    font-size: 0.85rem;
-    letter-spacing: 0.07em;
-  }
-
-  .tier-icon { font-size: 1rem; }
-
-  .tier-sub {
-    margin-left: auto;
-    font-size: 0.85rem;
-    font-weight: 700;
-  }
-
-  .tier-sub .muted {
-    color: #6b7280;
-    font-weight: 500;
-    margin-left: 0.25rem;
-  }
-
-  .top-row {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0.75rem;
-    align-items: stretch;
-    margin-bottom: 1.25rem;
-  }
-
-  .side-panel {
-    display: flex;
-    flex-direction: column;
-    min-width: 0;
-  }
-
-  .bottom-row {
-    display: flex;
-    justify-content: center;
-  }
-
-  .depth-panel {
-    width: 100%;
-    max-width: 600px;
-  }
-
-  .trend-header {
-    display: flex;
-    align-items: center;
-    gap: 0.6rem;
-    margin-bottom: 0.5rem;
-    flex-wrap: wrap;
-  }
-
-  .legend {
-    display: flex;
-    gap: 0.5rem;
-    margin-left: auto;
-  }
-
-  .legend-item {
-    display: flex;
-    align-items: center;
-    gap: 0.3rem;
-    color: #6b7280;
-    font-size: 0.7rem;
-  }
-
-  .dot {
-    width: 16px;
-    height: 2px;
-    border-radius: 1px;
-    flex-shrink: 0;
-  }
-
-  .dot.blue { background: #3b82f6; }
-  .dot.green {
-    background: repeating-linear-gradient(
-      to right,
-      #34d399 0px, #34d399 3px,
-      transparent 3px, transparent 6px
-    );
-  }
-
-  .chart-box {
-    background: #111827;
-    border: 1px solid #1f2937;
-    border-radius: 8px;
-    padding: 0.6rem;
-    flex: 1;
-    min-height: 220px;
-    position: relative;
-  }
-
-  .chart-box canvas {
-    position: absolute;
-    inset: 0.6rem;
-    width: calc(100% - 1.2rem) !important;
-    height: calc(100% - 1.2rem) !important;
-  }
-
-  .depth-card {
-    background: #111827;
-    border: 1px solid #1f2937;
-    border-radius: 8px;
-    padding: 0.4rem 0.5rem;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-  }
-
-  .depth-group {
-    display: flex;
-    align-items: flex-start;
-    gap: 0.5rem;
-    padding: 0.3rem 0.2rem;
-    border-bottom: 1px solid #1f2937;
-  }
-
-  .depth-group:last-child { border-bottom: none; }
-
-  .depth-pos-label {
-    min-width: 28px;
-    font-size: 0.65rem;
-    font-weight: 700;
-    color: #4b5563;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    padding-top: 0.1rem;
-    flex-shrink: 0;
-  }
-
-  .depth-players {
-    display: flex;
-    flex-direction: column;
-    gap: 0.15rem;
-    flex: 1;
-    min-width: 0;
-  }
-
-  .depth-row {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-    padding: 0.1rem 0.3rem;
-    border-radius: 4px;
-  }
-
-  .depth-highlighted {
-    background: rgba(59, 130, 246, 0.08);
-    border: 1px solid rgba(59, 130, 246, 0.2);
-  }
-
-  .depth-order {
-    font-size: 0.62rem;
-    font-weight: 600;
-    color: #374151;
-    min-width: 18px;
-    flex-shrink: 0;
-    text-align: right;
-  }
-
-  .depth-order-1 { color: #facc15; }
-
-  .depth-name {
-    font-size: 0.75rem;
-    color: #9ca3af;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    text-align: center;
-    min-width: 120px;
-  }
-
-  .depth-name-active {
-    color: #f9fafb;
-    font-weight: 600;
-  }
-
-  .depth-status {
-    font-size: 0.6rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    flex-shrink: 0;
-    min-width: 80px;
-  }
-
-  .depth-empty {
-    color: #4b5563;
-    font-size: 0.8rem;
-    padding: 0.75rem 0.25rem;
-  }
-
-  .insights {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-    flex: 1;
-  }
-
-  .insight {
-    display: flex;
-    align-items: flex-start;
-    gap: 0.75rem;
-    background: #111827;
-    border: 1px solid #1f2937;
-    border-left: 3px solid #34d399;
-    border-radius: 8px;
-    padding: 0.7rem 0.9rem;
-  }
-
-  .insight-icon { font-size: 1.05rem; flex-shrink: 0; }
-  .insight-text { color: #e5e7eb; font-size: 0.88rem; line-height: 1.4; }
-</style>

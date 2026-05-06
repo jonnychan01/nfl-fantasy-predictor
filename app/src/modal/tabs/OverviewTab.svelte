@@ -22,20 +22,8 @@
   $: boomWeeks = weeks.filter(w => (w.stats?.pts_ppr ?? 0) >= avgPts * 1.3)
   $: bustWeeks = weeks.filter(w => (w.stats?.pts_ppr ?? 0) <= avgPts * 0.55)
 
-  $: topGame = [...weeks].sort((a, b) => (b.stats?.pts_ppr ?? 0) - (a.stats?.pts_ppr ?? 0))[0]
-  $: botGame = [...weeks].sort((a, b) => (a.stats?.pts_ppr ?? 0) - (b.stats?.pts_ppr ?? 0))[0]
-  $: maxPts  = weeks.length ? Math.max(...weeks.map(w => w.stats?.pts_ppr ?? 0)) : 1
-
   $: ppgDelta = (latest.ppg ?? 0) - (prev.ppg ?? 0)
   $: ptsDelta = (latest.pts_ppr ?? 0) - (prev.pts_ppr ?? 0)
-
-  const BAR_H = 50
-
-  function chipColor(pts) {
-    if (pts >= avgPts * 1.3) return '#34d399'
-    if (pts <= avgPts * 0.55) return '#f87171'
-    return '#facc15'
-  }
 
   function consistencyColor(pct) {
     if (pct >= 70) return '#34d399'
@@ -64,6 +52,10 @@
 
   $: extraCols = SEASON_COLS[player.position] ?? SEASON_COLS.WR
 
+  const SECTION_LABEL = 'text-gray-400 text-xs font-semibold uppercase tracking-wider mb-2'
+  const STAT_CARD = 'bg-surface border border-border-soft rounded-[10px] p-3.5 flex flex-col gap-1'
+  const SEASON_STAT = 'flex-1 min-w-[70px] bg-surface border border-border-soft rounded-lg px-3 py-2.5'
+
   onMount(async () => {
     try {
       const res = await fetch(
@@ -83,83 +75,83 @@
 </script>
 
 {#if loading}
-  <div class="empty-state">Loading stats...</div>
+  <div class="flex items-center justify-center h-[200px] text-gray-500 text-sm">Loading stats...</div>
 {:else if weeks.length === 0}
-  <div class="empty-state">No stats available</div>
+  <div class="flex items-center justify-center h-[200px] text-gray-500 text-sm">No stats available</div>
 {:else}
 
-  <div class="section-label">2026 Projection</div>
-  <div class="hero">
-    <div class="stat-card accent-green">
-      <span class="label">Projected pts</span>
-      <span class="value">{player.projected_points}</span>
-      <span class="sub">Full season PPR</span>
+  <div class={SECTION_LABEL}>2026 Projection</div>
+  <div class="grid grid-cols-3 gap-3">
+    <div class="{STAT_CARD} border-t-2 !border-t-emerald-400">
+      <span class="text-[0.62rem] font-semibold uppercase tracking-wider text-gray-500">Projected pts</span>
+      <span class="text-[1.55rem] font-bold text-gray-50 leading-none">{player.projected_points}</span>
+      <span class="text-xs text-gray-500">Full season PPR</span>
     </div>
-    <div class="stat-card accent-blue">
-      <span class="label">Proj PPG</span>
-      <span class="value">{(player.projected_points / 17).toFixed(1)}</span>
-      <span class="sub">Per game avg</span>
+    <div class="{STAT_CARD} border-t-2 !border-t-blue-500">
+      <span class="text-[0.62rem] font-semibold uppercase tracking-wider text-gray-500">Proj PPG</span>
+      <span class="text-[1.55rem] font-bold text-gray-50 leading-none">{(player.projected_points / 17).toFixed(1)}</span>
+      <span class="text-xs text-gray-500">Per game avg</span>
     </div>
-    <div class="stat-card accent-yellow">
-      <span class="label">Consistency</span>
-      <span class="value" style="color:{consistencyColor(consistencyPct)}">{consistencyPct}%</span>
-      <span class="sub">{consistentWeeks} of {weeks.length} wks ≥85% avg</span>
+    <div class="{STAT_CARD} border-t-2 !border-t-yellow-400">
+      <span class="text-[0.62rem] font-semibold uppercase tracking-wider text-gray-500">Consistency</span>
+      <span class="text-[1.55rem] font-bold leading-none" style="color:{consistencyColor(consistencyPct)}">{consistencyPct}%</span>
+      <span class="text-xs text-gray-500">{consistentWeeks} of {weeks.length} wks ≥85% avg</span>
     </div>
   </div>
 
-  <div class="section-label" style="margin-top:1.25rem">Boom / bust ({latestSeason})</div>
-  <div class="bbd-row" style="justify-content:center">
-    <div class="stat-card" style="width:290px;flex-shrink:0">
-      <span class="label">Boom weeks</span>
-      <span class="value sm green">{boomWeeks.length}</span>
-      <span class="sub">≥130% of avg</span>
+  <div class="{SECTION_LABEL} mt-5">Boom / bust ({latestSeason})</div>
+  <div class="flex gap-2 mb-3 justify-center max-w-[500px] mx-auto">
+    <div class="{STAT_CARD} w-[290px] shrink-0">
+      <span class="text-[0.62rem] font-semibold uppercase tracking-wider text-gray-500">Boom weeks</span>
+      <span class="text-[1.15rem] font-bold leading-none text-emerald-400">{boomWeeks.length}</span>
+      <span class="text-xs text-gray-500">≥130% of avg</span>
     </div>
-    <div class="stat-card" style="width:290px;flex-shrink:0">
-      <span class="label">Avg game</span>
-      <span class="value sm">{avgPts.toFixed(1)}</span>
-      <span class="sub">PPR pts</span>
+    <div class="{STAT_CARD} w-[290px] shrink-0">
+      <span class="text-[0.62rem] font-semibold uppercase tracking-wider text-gray-500">Avg game</span>
+      <span class="text-[1.15rem] font-bold text-gray-50 leading-none">{avgPts.toFixed(1)}</span>
+      <span class="text-xs text-gray-500">PPR pts</span>
     </div>
-    <div class="stat-card" style="width:290px;flex-shrink:0">
-      <span class="label">Bust weeks</span>
-      <span class="value sm red">{bustWeeks.length}</span>
-      <span class="sub">≤55% of avg</span>
+    <div class="{STAT_CARD} w-[290px] shrink-0">
+      <span class="text-[0.62rem] font-semibold uppercase tracking-wider text-gray-500">Bust weeks</span>
+      <span class="text-[1.15rem] font-bold leading-none text-red-400">{bustWeeks.length}</span>
+      <span class="text-xs text-gray-500">≤55% of avg</span>
     </div>
   </div>
-  <div class="consistency-row" style="max-width:500px;margin:0 auto 0.35rem">
-    <div class="bar-track">
-      <div class="bar-fill" style="width:{consistencyPct}%;background:{consistencyColor(consistencyPct)}"></div>
+  <div class="flex items-center gap-3 mb-1.5 max-w-[500px] mx-auto">
+    <div class="flex-1 h-[7px] bg-border-soft rounded-full overflow-hidden">
+      <div class="h-full rounded-full" style="width:{consistencyPct}%;background:{consistencyColor(consistencyPct)}"></div>
     </div>
-    <span class="consistency-val">{consistencyPct}%</span>
+    <span class="text-sm font-bold text-gray-50 min-w-[36px] text-right">{consistencyPct}%</span>
   </div>
-  <p class="consistency-sub" style="text-align:center">{consistencyLabel(consistencyPct)}</p>
+  <p class="text-[0.72rem] text-gray-500 text-center m-0">{consistencyLabel(consistencyPct)}</p>
 
-  <div class="section-label" style="margin-top:1.25rem">Season over season</div>
-  <div class="season-row">
-    <div class="season-stat">
-      <div class="sv">{latest.ppg ?? '—'}</div>
-      <div class="sl">PPG</div>
+  <div class="{SECTION_LABEL} mt-5">Season over season</div>
+  <div class="flex gap-2 flex-wrap">
+    <div class={SEASON_STAT}>
+      <div class="text-base font-bold text-gray-50">{latest.ppg ?? '—'}</div>
+      <div class="text-[0.6rem] font-semibold uppercase tracking-wider text-gray-500 mt-0.5">PPG</div>
       {#if prevSeason && prev.ppg}
-        <div class="delta" class:up={ppgDelta >= 0} class:down={ppgDelta < 0}>
+        <div class="text-[0.68rem] font-semibold mt-0.5 {ppgDelta >= 0 ? 'text-emerald-400' : 'text-red-400'}">
           {ppgDelta >= 0 ? '▲' : '▼'} {Math.abs(ppgDelta).toFixed(2)} vs {prevSeason}
         </div>
       {/if}
     </div>
-    <div class="season-stat">
-      <div class="sv">{latest.pts_ppr ?? '—'}</div>
-      <div class="sl">Total pts</div>
+    <div class={SEASON_STAT}>
+      <div class="text-base font-bold text-gray-50">{latest.pts_ppr ?? '—'}</div>
+      <div class="text-[0.6rem] font-semibold uppercase tracking-wider text-gray-500 mt-0.5">Total pts</div>
       {#if prevSeason && prev.pts_ppr}
-        <div class="delta" class:up={ptsDelta >= 0} class:down={ptsDelta < 0}>
+        <div class="text-[0.68rem] font-semibold mt-0.5 {ptsDelta >= 0 ? 'text-emerald-400' : 'text-red-400'}">
           {ptsDelta >= 0 ? '▲' : '▼'} {Math.abs(ptsDelta).toFixed(2)} vs {prevSeason}
         </div>
       {/if}
     </div>
     {#each extraCols as key}
-    <div class="season-stat">
-      <div class="sv">{latest[key] ?? '—'}</div>
-      <div class="sl">{SEASON_LABELS[key]}</div>
+    <div class={SEASON_STAT}>
+      <div class="text-base font-bold text-gray-50">{latest[key] ?? '—'}</div>
+      <div class="text-[0.6rem] font-semibold uppercase tracking-wider text-gray-500 mt-0.5">{SEASON_LABELS[key]}</div>
       {#if prev[key] != null && latest[key] != null}
         {@const delta = (latest[key] ?? 0) - (prev[key] ?? 0)}
-        <div class="delta" class:up={delta >= 0} class:down={delta < 0}>
+        <div class="text-[0.68rem] font-semibold mt-0.5 {delta >= 0 ? 'text-emerald-400' : 'text-red-400'}">
           {delta >= 0 ? '▲' : '▼'} {Math.abs(delta).toFixed(0)} vs {prevSeason}
         </div>
       {/if}
@@ -168,173 +160,3 @@
   </div>
 
 {/if}
-
-<style>
-  .empty-state {
-    display: flex; 
-    align-items: center;
-    justify-content: center;
-    height: 200px;
-    color: #6b7280; 
-    font-size: 0.9rem;
-  }
-
-  .section-label {
-    color: #9ca3af; 
-    font-size: 0.75rem; 
-    font-weight: 600;
-    text-transform: uppercase; 
-    letter-spacing: 0.07em; 
-    margin-bottom: 0.5rem;
-  }
-
-  .hero { 
-    display: grid; 
-    grid-template-columns: 1fr 1fr 1fr; 
-    gap: 0.75rem; 
-  }
-
-  .bbd-row { 
-    display: flex; 
-    gap: 0.5rem; 
-    margin-bottom: 0.75rem; 
-    justify-content: center; 
-    max-width: 500px; 
-    margin-left: auto; 
-    margin-right: auto; 
-  }
-
-  .stat-card {
-    background: #111827; 
-    border: 1px solid #1f2937;
-    border-radius: 10px; 
-    padding: 0.85rem;
-    display: flex; 
-    flex-direction: column; 
-    gap: 0.2rem;
-  }
-
-  .stat-card.accent-blue   { 
-    border-top: 2px 
-    solid #3b82f6; 
-  }
-
-  .stat-card.accent-green  { 
-    border-top: 2px 
-    solid #34d399; 
-  }
-
-  .stat-card.accent-yellow { 
-    border-top: 2px 
-    solid #facc15; 
-  }
-
-  .label { 
-    font-size: 0.62rem; 
-    font-weight: 600; 
-    text-transform: uppercase; 
-    letter-spacing: 0.07em; 
-    color: #6b7280;
-   }
-
-  .value { 
-    font-size: 1.55rem; 
-    font-weight: 700; 
-    color: #f9fafb; 
-    line-height: 1; 
-  }
-
-  .value.sm { 
-    font-size: 1.15rem; 
-  }
-
-  .value.green { 
-    color: #34d399; 
-  }
-
-  .value.red   {
-     color: #f87171; 
-  }
-  
-  .sub {
-     font-size: 0.7rem; 
-     color: #6b7280; 
-    }
-
-  .consistency-row {
-     display: flex; 
-     align-items: center; 
-     gap: 0.75rem; 
-     margin-bottom: 0.35rem; 
-    }
-
-  .bar-track { 
-    flex: 1; 
-    height: 7px; 
-    background: #1f2937; 
-    border-radius: 999px; 
-    overflow: hidden; 
-  }
-
-  .bar-fill  { 
-    height: 100%; 
-    border-radius: 999px; 
-  }
-
-  .consistency-val {
-    font-size: 0.85rem; 
-    font-weight: 700; 
-    color: #f9fafb; 
-    min-width: 36px; 
-    text-align: right; 
-  }
-
-  .consistency-sub { 
-    font-size: 0.72rem; 
-    color: #6b7280; 
-    margin-bottom: 0; 
-  }
-
-  .season-row { 
-    display: flex; 
-    gap: 0.5rem; 
-    flex-wrap: wrap;
-   }
-
-  .season-stat {
-    flex: 1; 
-    min-width: 70px;
-    background: #111827; 
-    border: 1px solid #1f2937;
-    border-radius: 8px; 
-    padding: 0.6rem 0.75rem;
-  }
-  .sv { 
-    font-size: 1.05rem; 
-    font-weight: 700; 
-    color: #f9fafb; 
-  }
-
-  .sl { 
-    font-size: 0.6rem; 
-    font-weight: 600; 
-    text-transform: uppercase; 
-    letter-spacing: 0.06em; 
-    color: #6b7280; 
-    margin-top: 0.15rem; 
-  }
-
-  .delta { 
-    font-size: 0.68rem; 
-    font-weight: 600; 
-    margin-top: 0.2rem; 
-  }
-
-  .delta.up   { 
-    color: #34d399; 
-  }
-
-  .delta.down { 
-    color: #f87171; 
-    }
-</style>

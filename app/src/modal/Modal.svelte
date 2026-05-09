@@ -31,15 +31,26 @@
     ['analysis', 'Analysis'],
   ]
 
-  onMount(async () => {
-    try {
-      const res = await fetch(`http://localhost:8000/api/players/${player.player_id}/schedule-projections`)
-      scheduleData = await res.json()
-    } catch (e) {
-      console.error('Failed to fetch schedule:', e)
-      scheduleData = null
+let playerStatus = null
+
+onMount(async () => {
+  try {
+    const res = await fetch(`http://localhost:8000/api/players/${player.player_id}/schedule-projections`)
+    scheduleData = await res.json()
+  } catch (e) {
+    scheduleData = null
+  }
+
+  try {
+    const res = await fetch(`http://localhost:8000/api/players/${player.player_id}/depth-chart`)
+    const data = await res.json()
+    // Find the current player's status across all positions
+    for (const players of Object.values(data.depth_chart ?? {})) {
+      const match = players.find(p => p.is_current_player)
+      if (match?.status) { playerStatus = match.status; break }
     }
-  })
+  } catch (e) {}
+})
 </script>
 
 <div
@@ -99,10 +110,25 @@
           </div>
         </div>
       </div>
+      <div class="flex flex-col items-end gap-2">
       <button
-        class="bg-transparent border-0 text-gray-400 text-lg cursor-pointer p-0"
-        on:click={onClose}
-      >✕</button>
+          class="bg-transparent border-0 text-gray-400 text-lg cursor-pointer p-0"
+          on:click={onClose}
+        >✕</button>
+        {#if playerStatus && playerStatus !== 'Active'}
+          <span class="text-xs font-bold uppercase tracking-wider px-2.5 py-1 rounded-md border
+            {playerStatus === 'IR' || playerStatus === 'PUP'
+              ? 'text-red-400 border-red-400/30 bg-red-400/10'
+              : playerStatus === 'Questionable'
+              ? 'text-yellow-400 border-yellow-400/30 bg-yellow-400/10'
+              : playerStatus === 'Doubtful'
+              ? 'text-orange-400 border-orange-400/30 bg-orange-400/10'
+              : 'text-gray-400 border-gray-400/30 bg-gray-400/10'}">
+            {playerStatus}
+          </span>
+        {/if}
+        
+      </div>
     </div>
 
     <div class="flex border-b border-border mb-6">

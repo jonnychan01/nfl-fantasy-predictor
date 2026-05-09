@@ -278,46 +278,44 @@
     {/if}
   </div>
 </div>
+<div class="w-full">
+  <span class="block text-gray-400 text-xs font-semibold uppercase tracking-wider mb-2">
+    {player?.team ?? ''} Depth Chart
+  </span>
 
-<div class="flex justify-center">
-  <div class="w-full max-w-[600px]">
-    <span class="block text-center text-gray-400 text-xs font-semibold uppercase tracking-wider mb-2">
-      {player?.team ?? ''} Depth Chart
-    </span>
-    {#if depthLoading}
-      <div class={EMPTY}>Loading...</div>
-    {:else if depthData?.depth_chart}
-      <div class="bg-surface border border-border-soft rounded-lg px-2 py-1.5 flex flex-col overflow-hidden">
-        {#each POSITION_ORDER as pos}
-          {#if depthData.depth_chart[pos]?.length}
-            <div class="flex items-start gap-2 px-1 py-1.5 border-b border-border-soft last:border-b-0">
-              <div class="min-w-[28px] text-[0.65rem] font-bold text-gray-600 uppercase tracking-wider pt-0.5 shrink-0">{pos}</div>
-              <div class="flex flex-col gap-0.5 flex-1 min-w-0">
-                {#each depthData.depth_chart[pos] as p}
-                  <div class="flex items-center justify-center gap-2 px-1.5 py-0.5 rounded {p.is_current_player ? 'bg-blue-500/[0.08] border border-blue-500/20' : ''}">
-                    <span class="text-[0.62rem] font-semibold min-w-[18px] shrink-0 text-right {p.depth_order === 1 ? 'text-yellow-400' : 'text-gray-700'}">
-                      #{p.depth_order}
-                    </span>
-                    <span class="text-xs whitespace-nowrap overflow-hidden text-ellipsis text-center min-w-[120px] {p.is_current_player ? 'text-gray-50 font-semibold' : 'text-gray-400'}">
-                      {p.name}
-                    </span>
-                    {#if p.status && p.status !== 'Active'}
-                      <span
-                        class="text-[0.6rem] font-semibold uppercase tracking-wider shrink-0 min-w-[80px]"
-                        style="color:{statusColor(p.status)}"
-                      >
-                        {p.status}
-                      </span>
-                    {/if}
-                  </div>
-                {/each}
-              </div>
-            </div>
-          {/if}
+{#if depthLoading}
+  <div class={EMPTY}>Loading...</div>
+{:else if depthData?.depth_chart}
+  {@const activeCols = POSITION_ORDER.filter(pos => depthData.depth_chart[pos]?.length)}
+  {@const maxDepth = Math.max(...activeCols.map(pos => depthData.depth_chart[pos].length))}
+  <div class="w-full">
+    <!-- Column headers -->
+    <div class="flex border-b border-border-soft mb-1">
+      {#each activeCols as pos}
+        <div class="flex-1 px-3 py-2 text-[0.65rem] font-bold uppercase tracking-wider
+          {pos === 'QB' ? 'text-red-400' : pos === 'RB' ? 'text-emerald-400' : pos.startsWith('WR') ? 'text-blue-400' : pos === 'TE' ? 'text-purple-400' : 'text-gray-500'}">
+          {pos}
+        </div>
+      {/each}
+    </div>
+    <!-- One row per depth slot -->
+    {#each Array.from({ length: maxDepth }) as _, slotIndex}
+      <div class="flex">
+        {#each activeCols as pos}
+          {@const p = depthData.depth_chart[pos][slotIndex]}
+          <div class="flex-1 px-3 py-2 min-h-[34px] flex items-center gap-1.5 justify-center">
+            {#if p}
+              <span class="text-[0.82rem] leading-snug truncate text-center
+                {p.is_current_player ? 'text-gray-50 font-semibold' : 'text-gray-50 font-normal'}">
+                {p.name}
+              </span>
+            {/if}
+          </div>
         {/each}
       </div>
-    {:else}
-      <div class={EMPTY}>No depth chart available</div>
-    {/if}
+    {/each}
   </div>
+{:else}
+  <div class={EMPTY}>No depth chart available</div>
+{/if}
 </div>

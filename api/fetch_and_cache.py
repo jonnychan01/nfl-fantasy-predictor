@@ -56,12 +56,11 @@ def fetch_team_schedule(espn_id: str, team_abbr: str):
             competitors = event["competitions"][0]["competitors"]
             home = next(c for c in competitors if c["homeAway"] == "home")
             away = next(c for c in competitors if c["homeAway"] == "away")
-            home_abbr = home["team"]["abbreviation"]
-            away_abbr = away["team"]["abbreviation"]
+            home_abbr = ABBR_MAP.get(home["team"]["abbreviation"], home["team"]["abbreviation"])
+            away_abbr = ABBR_MAP.get(away["team"]["abbreviation"], away["team"]["abbreviation"])
 
             is_home = home_abbr == team_abbr
             opponent = away_abbr if is_home else home_abbr
-            opponent = ABBR_MAP.get(opponent, opponent)
 
             schedule.append({
                 "week": week,
